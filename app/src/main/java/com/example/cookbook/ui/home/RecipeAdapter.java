@@ -17,6 +17,7 @@ import com.example.cookbook.model.Recipe;
 import com.example.cookbook.util.FirebaseManager;
 import com.example.cookbook.ui.recipe.RecipeDetailActivity;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeViewHolder> {
@@ -53,7 +54,21 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
     }
 
     public void updateRecipes(List<Recipe> newRecipes) {
-        this.recipes = newRecipes;
+        // Filter out duplicates based on recipe ID
+        List<Recipe> uniqueRecipes = new ArrayList<>();
+        for (Recipe recipe : newRecipes) {
+            boolean isDuplicate = false;
+            for (Recipe existingRecipe : uniqueRecipes) {
+                if (existingRecipe.getId().equals(recipe.getId())) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            if (!isDuplicate) {
+                uniqueRecipes.add(recipe);
+            }
+        }
+        this.recipes = uniqueRecipes;
         notifyDataSetChanged();
     }
 
