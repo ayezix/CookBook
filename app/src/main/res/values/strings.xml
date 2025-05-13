@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CookBook</string>
+    
+    <!-- Bottom Navigation -->
+    <string name="title_home">Home</string>
+    <string name="title_favorites">Favorites</string>
+    <string name="title_profile">Profile</string>
+    
+    <!-- Authentication -->
+    <string name="hint_email">Email</string>
+    <string name="hint_password">Password</string>
+    <string name="btn_login">Login</string>
+    <string name="btn_register">Register</string>
+    <string name="btn_forgot_password">Forgot Password?</string>
+    <string name="text_no_account">Don\'t have an account?</string>
+    <string name="text_have_account">Already have an account?</string>
+    
+    <!-- Recipe Related -->
+    <string name="title_add_recipe">Add Recipe</string>
+    <string name="hint_recipe_title">Recipe Title</string>
+    <string name="hint_recipe_category">Category</string>
+    <string name="hint_recipe_ingredients">Ingredients</string>
+    <string name="hint_recipe_instructions">Instructions</string>
+    <string name="btn_add_ingredient">Add Ingredient</string>
+    <string name="btn_add_custom_ingredient">Add Custom Ingredient</string>
+    <string name="btn_save_recipe">Save Recipe</string>
+    <string name="btn_upload_image">Upload Image</string>
+    
+    <!-- Categories -->
+    <string-array name="recipe_categories">
+        <item>Breakfast</item>
+        <item>Lunch</item>
+        <item>Dinner</item>
+        <item>Desserts</item>
+        <item>Snacks</item>
+        <item>Vegan</item>
+        <item>Vegetarian</item>
+        <item>Gluten-free</item>
+    </string-array>
+    
+    <!-- Messages -->
+    <string name="msg_login_success">Login successful</string>
+    <string name="msg_login_failed">Login failed</string>
+    <string name="msg_register_success">Registration successful</string>
+    <string name="msg_register_failed">Registration failed</string>
+    <string name="msg_recipe_saved">Recipe saved successfully</string>
+    <string name="msg_recipe_save_failed">Failed to save recipe</string>
+    <string name="msg_image_upload_success">Image uploaded successfully</string>
+    <string name="msg_image_upload_failed">Failed to upload image</string>
+    <string name="share_recipe_title">Share Recipe</string>
+    <string name="share_recipe_no_app">No app available to share</string>
+    <string name="share_recipe_header">Check out this recipe from CookBook!</string>
+    <string name="share_recipe_category">Category: %1$s</string>
+    <string name="share_recipe_ingredients">Ingredients:</string>
+    <string name="share_recipe_instructions">Instructions:</string>
+</resources>
