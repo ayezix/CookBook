@@ -175,6 +175,28 @@ public class FirebaseManager {
                 .update("isFavorite", isFavorite);
     }
 
+    public Task<Void> clearAllFavorites() {
+        String userId = getCurrentUserId();
+        if (userId == null) return Tasks.forException(new Exception("User not logged in"));
+
+        return db.collection(RECIPES_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isFavorite", true)
+                .get()
+                .continueWithTask(task -> {
+                    if (!task.isSuccessful()) {
+                        return Tasks.forException(new Exception("Failed to get favorite recipes"));
+                    }
+
+                    List<Task<Void>> updateTasks = new ArrayList<>();
+                    for (var doc : task.getResult().getDocuments()) {
+                        updateTasks.add(doc.getReference().update("isFavorite", false));
+                    }
+
+                    return Tasks.whenAll(updateTasks);
+                });
+    }
+
     public Task<QuerySnapshot> getFavoriteRecipes() {
         return db.collection(RECIPES_COLLECTION)
                 .whereEqualTo("userId", getCurrentUserId())
@@ -360,19 +382,26 @@ public class FirebaseManager {
     public Task<Void> addSampleRecipesIfNeeded() {
         String userId = getCurrentUserId();
         if (userId == null) return Tasks.forException(new Exception("User not logged in"));
-        return db.collection(USERS_COLLECTION).document(userId).get().continueWithTask(task -> {
-            if (!task.isSuccessful() || !task.getResult().exists()) {
-                return Tasks.forException(new Exception("User not found"));
-            }
-            Boolean alreadyAdded = task.getResult().getBoolean("sampleRecipesAdded");
-            if (alreadyAdded != null && alreadyAdded) {
-                return Tasks.forResult(null);
-            }
-            // Add sample recipes
-            return addSampleRecipes().addOnSuccessListener(aVoid -> {
-                db.collection(USERS_COLLECTION).document(userId)
-                  .update("sampleRecipesAdded", true);
-            });
-        });
+        
+        // First check if user has any recipes
+        return db.collection(RECIPES_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get()
+                .continueWithTask(task -> {
+                    if (!task.isSuccessful()) {
+                        return Tasks.forException(new Exception("Failed to check existing recipes"));
+                    }
+                    
+                    // If user already has recipes, don't add sample recipes
+                    if (!task.getResult().isEmpty()) {
+                        return Tasks.forResult(null);
+                    }
+                    
+                    // Add sample recipes only if user has no recipes
+                    return addSampleRecipes().addOnSuccessListener(aVoid -> {
+                        db.collection(USERS_COLLECTION).document(userId)
+                          .update("sampleRecipesAdded", true);
+                    });
+                });
     }
 } 

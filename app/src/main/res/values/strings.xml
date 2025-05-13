@@ -54,4 +54,11 @@
     <string name="share_recipe_category">Category: %1$s</string>
     <string name="share_recipe_ingredients">Ingredients:</string>
     <string name="share_recipe_instructions">Instructions:</string>
+    
+    <!-- Favorites -->
+    <string name="favorites">Favorites</string>
+    <string name="empty_favorites">No favorite recipes yet</string>
+    <string name="clear_favorites">Clear All Favorites</string>
+    <string name="clear_favorites_confirmation">Are you sure you want to remove all favorites?</string>
+    <string name="favorites_cleared">All favorites have been removed</string>
 </resources>

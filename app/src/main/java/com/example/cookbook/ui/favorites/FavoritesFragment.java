@@ -8,9 +8,11 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.example.cookbook.R;
 import com.example.cookbook.databinding.FragmentFavoritesBinding;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.ui.home.RecipeAdapter;
@@ -22,8 +24,8 @@ import java.util.List;
 
 public class FavoritesFragment extends Fragment {
     private FragmentFavoritesBinding binding;
-    private FirebaseManager firebaseManager;
-    private RecipeAdapter recipeAdapter;
+    private RecipeAdapter adapter;
+    private final FirebaseManager firebaseManager = FirebaseManager.getInstance();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -34,47 +36,75 @@ public class FavoritesFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        
-        firebaseManager = FirebaseManager.getInstance();
         setupRecyclerView();
-        loadFavoriteRecipes();
+        loadFavorites();
+        setupClearFavoritesButton();
     }
 
     private void setupRecyclerView() {
-        recipeAdapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
-            // TODO: Handle recipe click - open recipe details
-            Toast.makeText(requireContext(), "Recipe clicked: " + recipe.getTitle(), Toast.LENGTH_SHORT).show();
+        adapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
+            // Handle recipe click
         });
-        
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        binding.recyclerView.setAdapter(recipeAdapter);
+        binding.recyclerView.setAdapter(adapter);
     }
 
-    private void loadFavoriteRecipes() {
+    private void loadFavorites() {
         binding.progressBar.setVisibility(View.VISIBLE);
-        
         firebaseManager.getFavoriteRecipes()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Recipe> recipes = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Recipe recipe = document.toObject(Recipe.class);
-                        recipe.setId(document.getId());
-                        recipes.add(recipe);
-                    }
-                    recipeAdapter.updateRecipes(recipes);
-                    updateEmptyState(recipes.isEmpty());
-                    binding.progressBar.setVisibility(View.GONE);
+                    queryDocumentSnapshots.getDocuments().forEach(doc -> {
+                        Recipe recipe = doc.toObject(Recipe.class);
+                        if (recipe != null) {
+                            recipe.setId(doc.getId());
+                            recipes.add(recipe);
+                        }
+                    });
+                    updateUI(recipes);
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(requireContext(), "Failed to load favorite recipes", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Error loading favorites", Toast.LENGTH_SHORT).show();
                     binding.progressBar.setVisibility(View.GONE);
-                    updateEmptyState(true);
                 });
     }
 
-    private void updateEmptyState(boolean isEmpty) {
-        binding.emptyStateLayout.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-        binding.recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+    private void setupClearFavoritesButton() {
+        binding.btnClearFavorites.setOnClickListener(v -> showClearFavoritesConfirmation());
+    }
+
+    private void showClearFavoritesConfirmation() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.clear_favorites)
+                .setMessage(R.string.clear_favorites_confirmation)
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> clearAllFavorites())
+                .setNegativeButton(android.R.string.no, null)
+                .show();
+    }
+
+    private void clearAllFavorites() {
+        binding.progressBar.setVisibility(View.VISIBLE);
+        firebaseManager.clearAllFavorites()
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(requireContext(), R.string.favorites_cleared, Toast.LENGTH_SHORT).show();
+                    loadFavorites();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(requireContext(), "Error clearing favorites", Toast.LENGTH_SHORT).show();
+                    binding.progressBar.setVisibility(View.GONE);
+                });
+    }
+
+    private void updateUI(List<Recipe> recipes) {
+        binding.progressBar.setVisibility(View.GONE);
+        if (recipes.isEmpty()) {
+            binding.tvEmptyFavorites.setVisibility(View.VISIBLE);
+            binding.btnClearFavorites.setVisibility(View.GONE);
+        } else {
+            binding.tvEmptyFavorites.setVisibility(View.GONE);
+            binding.btnClearFavorites.setVisibility(View.VISIBLE);
+        }
+        adapter.updateRecipes(recipes);
     }
 
     @Override
