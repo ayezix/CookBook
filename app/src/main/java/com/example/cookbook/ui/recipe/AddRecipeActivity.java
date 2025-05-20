@@ -7,6 +7,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -128,13 +129,23 @@ public class AddRecipeActivity extends AppCompatActivity {
 
     private void uploadImageAndSaveRecipe(Recipe recipe) {
         firebaseManager.uploadRecipeImage(selectedImageUri)
-                .addOnSuccessListener(taskSnapshot -> taskSnapshot.getStorage().getDownloadUrl()
-                        .addOnSuccessListener(uri -> {
-                            recipe.setImageUrl(uri.toString());
-                            saveRecipeToFirestore(recipe);
-                        }))
+                .addOnSuccessListener(taskSnapshot -> {
+                    Log.d("AddRecipeActivity", "Image uploaded, fetching download URL...");
+                    taskSnapshot.getStorage().getDownloadUrl()
+                            .addOnSuccessListener(uri -> {
+                                Log.d("AddRecipeActivity", "Download URL: " + uri);
+                                recipe.setImageUrl(uri.toString());
+                                saveRecipeToFirestore(recipe);
+                            })
+                            .addOnFailureListener(e -> {
+                                binding.progressBar.setVisibility(View.GONE);
+                                Log.e("AddRecipeActivity", "Failed to get download URL", e);
+                                Toast.makeText(this, "Failed to get image URL", Toast.LENGTH_SHORT).show();
+                            });
+                })
                 .addOnFailureListener(e -> {
                     binding.progressBar.setVisibility(View.GONE);
+                    Log.e("AddRecipeActivity", "Image upload failed", e);
                     Toast.makeText(this, R.string.msg_image_upload_failed, Toast.LENGTH_SHORT).show();
                 });
     }
