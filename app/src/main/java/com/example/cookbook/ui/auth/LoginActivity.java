@@ -139,9 +139,32 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // TODO: Implement forgot password functionality
-        Toast.makeText(this, "Forgot password functionality coming soon", Toast.LENGTH_SHORT).show();
+        firebaseManager.sendPasswordResetEmail(email)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Toast.makeText(this, "Reset link sent to your email", Toast.LENGTH_LONG).show();
+                    } else {
+                        String errorMessage = "Failed to send reset email";
+                        Exception exception = task.getException();
+                        if (exception != null) {
+                            String errorCode = exception.getMessage();
+                            if (errorCode != null) {
+                                if (errorCode.contains("badly formatted")) {
+                                    errorMessage = "Invalid email format";
+                                } else if (errorCode.contains("no user record")) {
+                                    errorMessage = "No account found with this email";
+                                } else {
+                                    errorMessage = "Error: " + errorCode;
+                                }
+                            }
+                        }
+                        Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
+                    }
+                });
     }
+
+
+
 
     private boolean validateInput(String email, String password) {
         boolean isValid = true;

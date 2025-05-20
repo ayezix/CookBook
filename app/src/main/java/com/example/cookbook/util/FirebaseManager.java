@@ -199,6 +199,12 @@ public class FirebaseManager {
         return user;
     }
 
+    public Task<Void> sendPasswordResetEmail(String email) {
+        Log.d(TAG, "Sending password reset email to: " + email);
+        return auth.sendPasswordResetEmail(email);
+    }
+
+
     public Task<Void> addSampleRecipes() {
         List<Recipe> sampleRecipes = new ArrayList<>();
         
