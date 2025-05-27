@@ -1,89 +1,98 @@
-# CookBook - Your Personal Recipe Management App
+# CookBook Android App
 
-CookBook is a modern Android application that helps you manage, discover, and share your favorite recipes. Built with Material Design principles and Firebase integration, it provides a seamless cooking experience.
+A modern Android application for managing and sharing recipes, built with Java and Firebase.
 
 ## Features
 
-### 1. User Authentication
-- Secure sign-up and login using Firebase Authentication
-- Google Sign-In integration
-- User profile management
+- **Recipe Management**
+  - Create, read, update, and delete recipes
+  - Upload recipe images
+  - Categorize recipes
+  - Add ingredients with quantities and units
+  - Detailed cooking instructions
 
-### 2. Recipe Management
-- Create and save your own recipes
-- Add detailed ingredients and instructions
-- Upload recipe images
-- Categorize recipes for easy organization
+- **User Features**
+  - User authentication (email/password)
+  - Favorite recipes
+  - Search functionality
+  - Share recipes with others
 
-### 3. Recipe Discovery
-- Browse through a collection of recipes
-- Search functionality to find specific recipes
-- Filter recipes by categories or ingredients
+- **Recipe Categories**
+  - Breakfast
+  - Lunch
+  - Dinner
+  - Desserts
+  - Snacks
+  - Vegan
+  - Vegetarian
+  - Gluten-free
 
-### 4. Favorites System
-- Save your favorite recipes for quick access
-- Organize recipes in custom collections
-- Offline access to saved recipes
+## Technical Stack
 
-### 5. Modern UI/UX
-- Material Design 3 implementation
-- Smooth animations and transitions
-- Responsive layout for various screen sizes
-- Dark mode support
+- **Frontend**
+  - Java
+  - Android SDK
+  - Material Design Components
+  - ViewBinding
+  - Glide (Image loading)
 
-## Technical Details
+- **Backend**
+  - Firebase Authentication
+  - Firebase Firestore
+  - Firebase Storage
+  - ImgBB API (Image hosting)
 
-### Built With
-- Android SDK 34
-- Java 21
-- Firebase Services
-  - Authentication
-  - Firestore
-  - Storage
-- Android Jetpack Components
-  - Room: Local database for offline caching and data persistence
-  - ViewModel: Manages UI-related data and handles configuration changes
-  - LiveData: Observable data holder for reactive UI updates
-  - Navigation Component: Handles in-app navigation and deep linking
-  - ViewBinding: Type-safe view access
-  - Lifecycle Components: Manages Android activity and fragment lifecycles
-  - WorkManager: Handles background tasks like image uploads
-- Glide for image loading and caching
+## Setup Instructions
 
-### Architecture
-- MVVM (Model-View-ViewModel) architecture
-- Repository pattern for data management
-- Clean separation of concerns
-- Single Activity Architecture using Navigation Component
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/ayezix/CookBook.git
+   ```
 
-## Getting Started
-
-### Prerequisites
-- Android Studio Arctic Fox or newer
-- JDK 21
-- Android SDK 34
-- Google Play Services
-
-### Installation
-1. Clone the repository
 2. Open the project in Android Studio
-3. Sync Gradle files
-4. Add your `google-services.json` file to the app directory
-5. Build and run the application
 
-### Configuration
-1. Set up a Firebase project
-2. Enable Authentication and Firestore
-3. Download and add the `google-services.json` file
-4. Configure your Firebase security rules
+3. Create a `local.properties` file in the root directory with your API keys:
+   ```properties
+   IMGBB_API_KEY=your_imgbb_api_key
+   ```
+
+4. Build and run the project
+
+## Project Structure
+
+```
+app/
+├── src/
+│   ├── main/
+│   │   ├── java/com/example/cookbook/
+│   │   │   ├── api/           # API related classes
+│   │   │   ├── model/         # Data models
+│   │   │   ├── ui/            # UI components
+│   │   │   │   ├── home/      # Home screen
+│   │   │   │   ├── recipe/    # Recipe screens
+│   │   │   │   └── favorites/ # Favorites screen
+│   │   │   └── util/          # Utility classes
+│   │   └── res/               # Resources
+│   └── test/                  # Test files
+```
 
 ## Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create a new branch for your feature
+3. Make your changes
+4. Submit a pull request
+
+## Security
+
+- API keys are stored securely in `local.properties`
+- User authentication is handled through Firebase
+- Image uploads are processed through secure APIs
 
 ## License
+
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Acknowledgments
-- Material Design Components
-- Firebase
-- Android Jetpack Libraries 
+## Contact
+
+For any questions or suggestions, please open an issue in the GitHub repository. 
