@@ -126,7 +126,13 @@ public class FirebaseManager {
     public Task<Void> deleteRecipe(String recipeId) {
         return db.collection(RECIPES_COLLECTION)
                 .document(recipeId)
-                .delete();
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    // Also remove from favorites if it was favorited
+                    db.collection(RECIPES_COLLECTION)
+                            .document(recipeId)
+                            .delete();
+                });
     }
 
     public Task<QuerySnapshot> getUserRecipes() {

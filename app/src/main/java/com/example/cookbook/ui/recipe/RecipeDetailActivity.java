@@ -7,23 +7,30 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.example.cookbook.R;
 import com.example.cookbook.model.Ingredient;
 import com.example.cookbook.model.Recipe;
+import com.example.cookbook.util.FirebaseManager;
+import com.google.android.material.button.MaterialButton;
 
 public class RecipeDetailActivity extends AppCompatActivity {
     private static final String TAG = "RecipeDetailActivity";
+    private Recipe recipe;
+    private FirebaseManager firebaseManager;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_recipe_detail);
 
+        firebaseManager = FirebaseManager.getInstance();
+
         try {
-            Recipe recipe = (Recipe) getIntent().getSerializableExtra("recipe");
+            recipe = (Recipe) getIntent().getSerializableExtra("recipe");
             if (recipe == null) {
                 Log.e(TAG, "Recipe object is null");
                 Toast.makeText(this, "Error: Recipe not found", Toast.LENGTH_SHORT).show();
@@ -36,6 +43,7 @@ public class RecipeDetailActivity extends AppCompatActivity {
             TextView tvIngredients = findViewById(R.id.tvIngredients);
             TextView tvInstructions = findViewById(R.id.tvInstructions);
             ImageView ivRecipe = findViewById(R.id.ivRecipe);
+            MaterialButton btnDeleteRecipe = findViewById(R.id.btnDeleteRecipe);
 
             tvTitle.setText(recipe.getTitle());
             tvCategory.setText(recipe.getCategory());
@@ -59,10 +67,36 @@ public class RecipeDetailActivity extends AppCompatActivity {
                     .error(R.drawable.placeholder_recipe)
                     .into(ivRecipe);
             }
+
+            // Set up delete button click listener
+            btnDeleteRecipe.setOnClickListener(v -> showDeleteConfirmationDialog());
+
         } catch (Exception e) {
             Log.e(TAG, "Error displaying recipe details", e);
             Toast.makeText(this, "Error displaying recipe details", Toast.LENGTH_SHORT).show();
             finish();
+        }
+    }
+
+    private void showDeleteConfirmationDialog() {
+        new AlertDialog.Builder(this)
+            .setTitle("Delete Recipe")
+            .setMessage("Are you sure you want to delete this recipe? This action cannot be undone.")
+            .setPositiveButton("Delete", (dialog, which) -> deleteRecipe())
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private void deleteRecipe() {
+        if (recipe != null && recipe.getId() != null) {
+            firebaseManager.deleteRecipe(recipe.getId())
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Recipe deleted successfully", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Failed to delete recipe", Toast.LENGTH_SHORT).show();
+                });
         }
     }
 } 
