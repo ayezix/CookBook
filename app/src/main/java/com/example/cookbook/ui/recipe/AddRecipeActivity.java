@@ -18,7 +18,13 @@ import com.example.cookbook.databinding.ActivityAddRecipeBinding;
 import com.example.cookbook.model.Ingredient;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.util.FirebaseManager;
+import com.example.cookbook.util.ImgBBUploadManager;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -128,35 +134,45 @@ public class AddRecipeActivity extends AppCompatActivity {
     }
 
     private void uploadImageAndSaveRecipe(Recipe recipe) {
-        firebaseManager.uploadRecipeImage(selectedImageUri)
-                .addOnSuccessListener(taskSnapshot -> {
-                    Log.d("AddRecipeActivity", "Image uploaded, fetching download URL...");
-                    taskSnapshot.getStorage().getDownloadUrl()
-                            .addOnSuccessListener(uri -> {
-                                Log.d("AddRecipeActivity", "Download URL: " + uri);
-                                recipe.setImageUrl(uri.toString());
-                                saveRecipeToFirestore(recipe);
-                            })
-                            .addOnFailureListener(e -> {
-                                binding.progressBar.setVisibility(View.GONE);
-                                Log.e("AddRecipeActivity", "Failed to get download URL", e);
-                                Toast.makeText(this, "Failed to get image URL", Toast.LENGTH_SHORT).show();
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    binding.progressBar.setVisibility(View.GONE);
-                    Log.e("AddRecipeActivity", "Image upload failed", e);
-                    Toast.makeText(this, R.string.msg_image_upload_failed, Toast.LENGTH_SHORT).show();
-                });
+        if (selectedImageUri == null) {
+            Log.d("AddRecipeActivity", "No image selected, saving recipe directly");
+            saveRecipeToFirestore(recipe);
+            return;
+        }
+
+        Log.d("AddRecipeActivity", "Starting image upload process...");
+        Log.d("AddRecipeActivity", "Selected Image URI: " + selectedImageUri);
+        Log.d("AddRecipeActivity", "Recipe before upload: " + recipe.toString());
+
+        binding.progressBar.setVisibility(View.VISIBLE);
+        ImgBBUploadManager.getInstance(this).uploadImage(selectedImageUri, new ImgBBUploadManager.ImageUploadCallback() {
+            @Override
+            public void onSuccess(String imageUrl) {
+                Log.d("AddRecipeActivity", "Image uploaded successfully: " + imageUrl);
+                recipe.setImageUrl(imageUrl);
+                Log.d("AddRecipeActivity", "Recipe after setting image URL: " + recipe.toString());
+                saveRecipeToFirestore(recipe);
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e("AddRecipeActivity", "Image upload failed: " + error);
+                binding.progressBar.setVisibility(View.GONE);
+                Toast.makeText(AddRecipeActivity.this, R.string.msg_image_upload_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void saveRecipeToFirestore(Recipe recipe) {
+        Log.d("AddRecipeActivity", "Saving recipe to Firestore: " + recipe.toString());
         firebaseManager.addRecipe(recipe)
                 .addOnSuccessListener(documentReference -> {
+                    Log.d("AddRecipeActivity", "Recipe saved successfully with ID: " + documentReference.getId());
                     Toast.makeText(this, R.string.msg_recipe_saved, Toast.LENGTH_SHORT).show();
                     finish();
                 })
                 .addOnFailureListener(e -> {
+                    Log.e("AddRecipeActivity", "Failed to save recipe", e);
                     binding.progressBar.setVisibility(View.GONE);
                     Toast.makeText(this, R.string.msg_recipe_save_failed, Toast.LENGTH_SHORT).show();
                 });

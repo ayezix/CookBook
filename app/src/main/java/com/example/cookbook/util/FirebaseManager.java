@@ -165,7 +165,21 @@ public class FirebaseManager {
         StorageReference imageRef = storage.getReference()
                 .child(RECIPE_IMAGES_PATH)
                 .child(imageName);
-        return imageRef.putFile(imageUri);
+        
+        Log.d(TAG, "Starting image upload...");
+        Log.d(TAG, "Selected Image URI: " + imageUri);
+        Log.d(TAG, "Storage Path: " + imageRef.getPath());
+        Log.d(TAG, "Storage Bucket: " + storage.getReference().getBucket());
+        Log.d(TAG, "Current User: " + (getCurrentUser() != null ? getCurrentUser().getUid() : "null"));
+        
+        try {
+            UploadTask uploadTask = imageRef.putFile(imageUri);
+            Log.d(TAG, "Upload task created successfully");
+            return uploadTask;
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating upload task", e);
+            throw e;
+        }
     }
 
     // Favorite recipes methods
