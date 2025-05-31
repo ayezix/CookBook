@@ -26,6 +26,7 @@ android {
         
         // Add API key to BuildConfig
         buildConfigField "String", "IMGBB_API_KEY", "\"${localProperties.getProperty('IMGBB_API_KEY')}\""
+        buildConfigField "String", "SPOONACULAR_API_KEY", "\"${localProperties.getProperty('SPOONACULAR_API_KEY')}\""
     }
 
     buildTypes {

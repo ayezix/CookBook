@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 
+import com.example.cookbook.BuildConfig;
 import com.example.cookbook.CookBookApplication;
 import com.example.cookbook.R;
 import com.example.cookbook.api.ApiClient;
@@ -330,7 +331,7 @@ public class FirebaseManager {
     }
 
     public void searchOnlineRecipes(String query, OnRecipesLoadedListener listener) {
-        String apiKey = context.getString(R.string.spoonacular_api_key);
+        String apiKey = BuildConfig.SPOONACULAR_API_KEY;
         ApiClient.getRecipeService().searchRecipes(apiKey, query, 10, true)
             .enqueue(new Callback<ApiRecipeResponse>() {
                 @Override
