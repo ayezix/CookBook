@@ -97,7 +97,42 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                 binding.ivFavorite.setImageResource(
                     newFavoriteState ? R.drawable.ic_favorite : R.drawable.ic_favorite_border
                 );
-                firebaseManager.toggleFavoriteRecipe(recipe.getId(), newFavoriteState);
+                
+                if (recipe.isImportedFromApi() && newFavoriteState) {
+                    // For API recipes, use favoriteApiRecipe only when favoriting
+                    firebaseManager.favoriteApiRecipe(recipe)
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(binding.getRoot().getContext(), 
+                                "Recipe added to favorites", Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnFailureListener(e -> {
+                            // Revert the UI state if the operation failed
+                            recipe.setFavorite(!newFavoriteState);
+                            binding.ivFavorite.setImageResource(
+                                !newFavoriteState ? R.drawable.ic_favorite : R.drawable.ic_favorite_border
+                            );
+                            Toast.makeText(binding.getRoot().getContext(), 
+                                "Failed to add recipe to favorites", Toast.LENGTH_SHORT).show();
+                        });
+                } else {
+                    // For local recipes or when unfavoriting, use toggleFavoriteRecipe
+                    firebaseManager.toggleFavoriteRecipe(recipe.getId(), newFavoriteState)
+                        .addOnSuccessListener(aVoid -> {
+                            if (!newFavoriteState) {
+                                Toast.makeText(binding.getRoot().getContext(), 
+                                    "Recipe removed from favorites", Toast.LENGTH_SHORT).show();
+                            }
+                        })
+                        .addOnFailureListener(e -> {
+                            // Revert the UI state if the operation failed
+                            recipe.setFavorite(!newFavoriteState);
+                            binding.ivFavorite.setImageResource(
+                                !newFavoriteState ? R.drawable.ic_favorite : R.drawable.ic_favorite_border
+                            );
+                            Toast.makeText(binding.getRoot().getContext(), 
+                                "Failed to update favorite status", Toast.LENGTH_SHORT).show();
+                        });
+                }
             });
 
             binding.ivShare.setOnClickListener(v -> showShareOptions(recipe));

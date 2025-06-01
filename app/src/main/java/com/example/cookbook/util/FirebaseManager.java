@@ -22,14 +22,19 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
+import com.google.firebase.firestore.DocumentSnapshot;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -39,11 +44,9 @@ public class FirebaseManager {
     private static final String TAG = "FirebaseManager";
     private static final String USERS_COLLECTION = "users";
     private static final String RECIPES_COLLECTION = "recipes";
-    private static final String RECIPE_IMAGES_PATH = "recipe_images";
 
     private final FirebaseAuth auth;
     private final FirebaseFirestore db;
-    private final FirebaseStorage storage;
     private final Context context;
 
     private static FirebaseManager instance;
@@ -52,7 +55,6 @@ public class FirebaseManager {
         try {
             auth = FirebaseAuth.getInstance();
             db = FirebaseFirestore.getInstance();
-            storage = FirebaseStorage.getInstance();
             context = CookBookApplication.getInstance();
             Log.d(TAG, "Firebase services initialized successfully");
         } catch (Exception e) {
@@ -137,16 +139,26 @@ public class FirebaseManager {
     }
 
     public Task<QuerySnapshot> getUserRecipes() {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Log.e(TAG, "Cannot get user recipes: User not logged in");
+            return Tasks.forException(new Exception("User not logged in"));
+        }
         return db.collection(RECIPES_COLLECTION)
-                .whereEqualTo("userId", getCurrentUserId())
+                .whereEqualTo("userId", userId)
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get();
     }
 
     public Task<QuerySnapshot> searchRecipesByName(String query) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Log.e(TAG, "Cannot search recipes: User not logged in");
+            return Tasks.forException(new Exception("User not logged in"));
+        }
         String searchQuery = query.toLowerCase();
         return db.collection(RECIPES_COLLECTION)
-                .whereEqualTo("userId", getCurrentUserId())
+                .whereEqualTo("userId", userId)
                 .whereGreaterThanOrEqualTo("title", searchQuery)
                 .whereLessThanOrEqualTo("title", searchQuery + "\uf8ff")
                 .get();
@@ -167,26 +179,54 @@ public class FirebaseManager {
     }
 
     // Image upload methods
-    public UploadTask uploadRecipeImage(Uri imageUri) {
-        String imageName = UUID.randomUUID().toString();
-        StorageReference imageRef = storage.getReference()
-                .child(RECIPE_IMAGES_PATH)
-                .child(imageName);
-        
+    public Task<String> uploadRecipeImage(Uri imageUri) {
         Log.d(TAG, "Starting image upload...");
         Log.d(TAG, "Selected Image URI: " + imageUri);
-        Log.d(TAG, "Storage Path: " + imageRef.getPath());
-        Log.d(TAG, "Storage Bucket: " + storage.getReference().getBucket());
-        Log.d(TAG, "Current User: " + (getCurrentUser() != null ? getCurrentUser().getUid() : "null"));
         
-        try {
-            UploadTask uploadTask = imageRef.putFile(imageUri);
-            Log.d(TAG, "Upload task created successfully");
-            return uploadTask;
-        } catch (Exception e) {
-            Log.e(TAG, "Error creating upload task", e);
-            throw e;
+        Task<String> task = Tasks.call(() -> {
+            // Convert Uri to File
+            File imageFile = createTempFileFromUri(imageUri);
+            
+            // Create a CompletableFuture to handle the async ImgBB upload
+            CompletableFuture<String> future = new CompletableFuture<>();
+            
+            // Upload to ImgBB
+            ImgBBUploadManager.uploadImage(imageFile, new ImgBBUploadManager.UploadCallback() {
+                @Override
+                public void onSuccess(String imageUrl) {
+                    Log.d(TAG, "Image uploaded successfully: " + imageUrl);
+                    future.complete(imageUrl);
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.e(TAG, "Error uploading image: " + error);
+                    future.completeExceptionally(new Exception(error));
+                }
+            });
+            
+            // Wait for the upload to complete
+            return future.get();
+        });
+        
+        return task;
+    }
+
+    private File createTempFileFromUri(Uri uri) throws IOException {
+        InputStream inputStream = context.getContentResolver().openInputStream(uri);
+        File tempFile = File.createTempFile("recipe_image_", ".jpg", context.getCacheDir());
+        
+        try (OutputStream outputStream = new FileOutputStream(tempFile)) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+        } finally {
+            inputStream.close();
         }
+        
+        return tempFile;
     }
 
     // Favorite recipes methods
@@ -201,6 +241,35 @@ public class FirebaseManager {
                 .whereEqualTo("userId", getCurrentUserId())
                 .whereEqualTo("isFavorite", true)
                 .get();
+    }
+
+    // New method to favorite an API recipe
+    public Task<Void> favoriteApiRecipe(Recipe recipe) {
+        Log.d(TAG, "Starting to favorite API recipe: " + recipe.getTitle());
+        try {
+            // Set a flag to indicate this recipe was imported from API
+            recipe.setImportedFromApi(true);
+            recipe.setFavorite(true); // Set favorite state to true
+            Log.d(TAG, "Recipe marked as imported from API and favorited");
+            
+            // Save the recipe to Firestore
+            return addRecipe(recipe)
+                .continueWithTask(task -> {
+                    if (task.isSuccessful()) {
+                        String recipeId = task.getResult().getId();
+                        recipe.setId(recipeId); // Set the ID on the recipe object
+                        Log.d(TAG, "Recipe saved successfully with ID: " + recipeId);
+                        return task.getResult().getParent().document(recipeId)
+                            .update("isFavorite", true);
+                    } else {
+                        Log.e(TAG, "Failed to save recipe", task.getException());
+                        throw task.getException();
+                    }
+                });
+        } catch (Exception e) {
+            Log.e(TAG, "Error in favoriteApiRecipe", e);
+            return Tasks.forException(e);
+        }
     }
 
     // Helper methods
@@ -332,13 +401,41 @@ public class FirebaseManager {
 
     public void searchOnlineRecipes(String query, OnRecipesLoadedListener listener) {
         String apiKey = BuildConfig.SPOONACULAR_API_KEY;
-        ApiClient.getRecipeService().searchRecipes(apiKey, query, 10, true)
+        ApiClient.getRecipeService().searchRecipes(apiKey, query, 10, true, true, true, true)
             .enqueue(new Callback<ApiRecipeResponse>() {
                 @Override
                 public void onResponse(Call<ApiRecipeResponse> call, Response<ApiRecipeResponse> response) {
                     if (response.isSuccessful() && response.body() != null) {
-                        List<Recipe> recipes = convertApiRecipesToLocalRecipes(response.body().getResults());
-                        listener.onRecipesLoaded(recipes);
+                        List<ApiRecipe> searchResults = response.body().getResults();
+                        if (searchResults != null && !searchResults.isEmpty()) {
+                            // Get recipe IDs
+                            StringBuilder ids = new StringBuilder();
+                            for (ApiRecipe recipe : searchResults) {
+                                if (ids.length() > 0) ids.append(",");
+                                ids.append(recipe.getId());
+                            }
+                            
+                            // Get detailed recipe information
+                            ApiClient.getRecipeService().getRecipeInformation(apiKey, ids.toString(), true)
+                                .enqueue(new Callback<List<ApiRecipe>>() {
+                                    @Override
+                                    public void onResponse(Call<List<ApiRecipe>> call, Response<List<ApiRecipe>> response) {
+                                        if (response.isSuccessful() && response.body() != null) {
+                                            List<Recipe> recipes = convertApiRecipesToLocalRecipes(response.body());
+                                            listener.onRecipesLoaded(recipes);
+                                        } else {
+                                            listener.onError("Failed to load recipe details");
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onFailure(Call<List<ApiRecipe>> call, Throwable t) {
+                                        listener.onError(t.getMessage());
+                                    }
+                                });
+                        } else {
+                            listener.onRecipesLoaded(new ArrayList<>());
+                        }
                     } else {
                         listener.onError("Failed to load recipes");
                     }
@@ -354,27 +451,35 @@ public class FirebaseManager {
     private List<Recipe> convertApiRecipesToLocalRecipes(List<ApiRecipe> apiRecipes) {
         List<Recipe> recipes = new ArrayList<>();
         for (ApiRecipe apiRecipe : apiRecipes) {
-            Recipe recipe = new Recipe();
-            recipe.setTitle(apiRecipe.getTitle());
-            recipe.setInstructions(apiRecipe.getInstructions());
-            recipe.setImageUrl(apiRecipe.getImageUrl());
-            recipe.setCategory(apiRecipe.getDishTypes() != null && !apiRecipe.getDishTypes().isEmpty() 
-                ? apiRecipe.getDishTypes().get(0) 
-                : "Other");
+            try {
+                Recipe recipe = new Recipe();
+                recipe.setTitle(apiRecipe.getTitle());
+                recipe.setInstructions(apiRecipe.getInstructions());
+                recipe.setImageUrl(apiRecipe.getImageUrl());
+                recipe.setCategory(apiRecipe.getDishTypes() != null && !apiRecipe.getDishTypes().isEmpty() 
+                    ? apiRecipe.getDishTypes().get(0) 
+                    : "Other");
+                recipe.setImportedFromApi(true);
+                recipe.setFavorite(false); // Initialize as not favorited
+                recipe.setCreatedAt(System.currentTimeMillis());
 
-            List<Ingredient> ingredients = new ArrayList<>();
-            if (apiRecipe.getIngredients() != null) {
-                for (ApiIngredient apiIngredient : apiRecipe.getIngredients()) {
-                    Ingredient ingredient = new Ingredient(
-                        apiIngredient.getName(),
-                        String.valueOf(apiIngredient.getAmount()),
-                        apiIngredient.getUnit()
-                    );
-                    ingredients.add(ingredient);
+                List<Ingredient> ingredients = new ArrayList<>();
+                if (apiRecipe.getIngredients() != null) {
+                    for (ApiIngredient apiIngredient : apiRecipe.getIngredients()) {
+                        Ingredient ingredient = new Ingredient(
+                            apiIngredient.getName(),
+                            String.valueOf(apiIngredient.getAmount()),
+                            apiIngredient.getUnit()
+                        );
+                        ingredients.add(ingredient);
+                    }
                 }
+                recipe.setIngredients(ingredients);
+                recipes.add(recipe);
+                Log.d(TAG, "Successfully converted API recipe: " + recipe.getTitle());
+            } catch (Exception e) {
+                Log.e(TAG, "Error converting API recipe: " + apiRecipe.getTitle(), e);
             }
-            recipe.setIngredients(ingredients);
-            recipes.add(recipe);
         }
         return recipes;
     }
@@ -401,5 +506,29 @@ public class FirebaseManager {
                   .update("sampleRecipesAdded", true);
             });
         });
+    }
+
+    public void loadRecipes(OnRecipesLoadedListener listener) {
+        if (listener == null) {
+            return;
+        }
+
+        db.collection("recipes")
+            .get()
+            .addOnSuccessListener(queryDocumentSnapshots -> {
+                List<Recipe> recipes = new ArrayList<>();
+                for (DocumentSnapshot document : queryDocumentSnapshots) {
+                    Recipe recipe = document.toObject(Recipe.class);
+                    if (recipe != null) {
+                        recipe.setId(document.getId());
+                        recipes.add(recipe);
+                    }
+                }
+                listener.onRecipesLoaded(recipes);
+            })
+            .addOnFailureListener(e -> {
+                Log.e(TAG, "Error loading recipes", e);
+                listener.onRecipesLoaded(new ArrayList<>());
+            });
     }
 } 

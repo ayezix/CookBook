@@ -96,8 +96,9 @@ public class HomeFragment extends Fragment {
                 }
             })
             .addOnFailureListener(e -> {
+                android.util.Log.e("HomeFragment", "Failed to search local recipes", e);
+                Toast.makeText(requireContext(), "Failed to search local recipes: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Failed to search local recipes", Toast.LENGTH_SHORT).show();
             });
     }
 
@@ -117,11 +118,13 @@ public class HomeFragment extends Fragment {
     }
 
     private void updateRecipeList(List<Recipe> recipes) {
-        allRecipes.clear();
-        allRecipes.addAll(recipes);
-        recipeAdapter.updateRecipes(allRecipes);
-        updateEmptyState(allRecipes.isEmpty());
-        binding.progressBar.setVisibility(View.GONE);
+        if (binding == null) {
+            return;
+        }
+        if (recipeAdapter != null) {
+            recipeAdapter.updateRecipes(recipes);
+        }
+        updateEmptyState(recipes.isEmpty());
     }
 
     private void setupClickListeners() {
@@ -177,12 +180,14 @@ public class HomeFragment extends Fragment {
                                     binding.progressBar.setVisibility(View.GONE);
                                 })
                                 .addOnFailureListener(e -> {
+                                    android.util.Log.e("HomeFragment", "Failed to load recipes after adding samples", e);
                                     Toast.makeText(requireContext(), "Failed to load recipes", Toast.LENGTH_SHORT).show();
                                     binding.progressBar.setVisibility(View.GONE);
                                     updateEmptyState(true);
                                 });
                         })
                         .addOnFailureListener(e -> {
+                            android.util.Log.e("HomeFragment", "Failed to add sample recipes", e);
                             Toast.makeText(requireContext(), "Failed to add sample recipes", Toast.LENGTH_SHORT).show();
                             binding.progressBar.setVisibility(View.GONE);
                             updateEmptyState(true);
@@ -194,13 +199,17 @@ public class HomeFragment extends Fragment {
                 }
             })
             .addOnFailureListener(e -> {
-                Toast.makeText(requireContext(), "Failed to load recipes", Toast.LENGTH_SHORT).show();
+                android.util.Log.e("HomeFragment", "Failed to load recipes", e);
+                Toast.makeText(requireContext(), "Failed to load recipes: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 binding.progressBar.setVisibility(View.GONE);
                 updateEmptyState(true);
             });
     }
 
     private void updateEmptyState(boolean isEmpty) {
+        if (binding == null || binding.emptyStateLayout == null) {
+            return;
+        }
         binding.emptyStateLayout.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         binding.recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
     }

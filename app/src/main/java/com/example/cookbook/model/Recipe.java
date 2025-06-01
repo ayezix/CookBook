@@ -16,6 +16,7 @@ public class Recipe implements Serializable {
     private String userId;
     private boolean isFavorite;
     private long createdAt;
+    private boolean importedFromApi;
 
     public Recipe() {
         // Required empty constructor for Firestore
@@ -58,4 +59,7 @@ public class Recipe implements Serializable {
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    public boolean isImportedFromApi() { return importedFromApi; }
+    public void setImportedFromApi(boolean importedFromApi) { this.importedFromApi = importedFromApi; }
 } 

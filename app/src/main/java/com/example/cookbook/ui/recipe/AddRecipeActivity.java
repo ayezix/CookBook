@@ -119,48 +119,32 @@ public class AddRecipeActivity extends AppCompatActivity {
         String instructions = binding.etInstructions.getText().toString().trim();
 
         if (title.isEmpty() || instructions.isEmpty() || ingredients.isEmpty()) {
-            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
         binding.progressBar.setVisibility(View.VISIBLE);
-        Recipe recipe = new Recipe(title, category, ingredients, instructions);
+
+        Recipe recipe = new Recipe();
+        recipe.setTitle(title);
+        recipe.setCategory(category);
+        recipe.setInstructions(instructions);
+        recipe.setIngredients(ingredients);
 
         if (selectedImageUri != null) {
-            uploadImageAndSaveRecipe(recipe);
+            // Upload image first
+            firebaseManager.uploadRecipeImage(selectedImageUri)
+                .addOnSuccessListener(imageUrl -> {
+                    recipe.setImageUrl(imageUrl);
+                    saveRecipeToFirestore(recipe);
+                })
+                .addOnFailureListener(e -> {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
         } else {
             saveRecipeToFirestore(recipe);
         }
-    }
-
-    private void uploadImageAndSaveRecipe(Recipe recipe) {
-        if (selectedImageUri == null) {
-            Log.d("AddRecipeActivity", "No image selected, saving recipe directly");
-            saveRecipeToFirestore(recipe);
-            return;
-        }
-
-        Log.d("AddRecipeActivity", "Starting image upload process...");
-        Log.d("AddRecipeActivity", "Selected Image URI: " + selectedImageUri);
-        Log.d("AddRecipeActivity", "Recipe before upload: " + recipe.toString());
-
-        binding.progressBar.setVisibility(View.VISIBLE);
-        ImgBBUploadManager.getInstance(this).uploadImage(selectedImageUri, new ImgBBUploadManager.ImageUploadCallback() {
-            @Override
-            public void onSuccess(String imageUrl) {
-                Log.d("AddRecipeActivity", "Image uploaded successfully: " + imageUrl);
-                recipe.setImageUrl(imageUrl);
-                Log.d("AddRecipeActivity", "Recipe after setting image URL: " + recipe.toString());
-                saveRecipeToFirestore(recipe);
-            }
-
-            @Override
-            public void onError(String error) {
-                Log.e("AddRecipeActivity", "Image upload failed: " + error);
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(AddRecipeActivity.this, R.string.msg_image_upload_failed, Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     private void saveRecipeToFirestore(Recipe recipe) {
