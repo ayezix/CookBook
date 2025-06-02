@@ -21,13 +21,18 @@ import com.example.cookbook.util.FirebaseManager;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-public class HomeFragment extends Fragment {
+import com.example.cookbook.ui.home.FilterTagAdapter.OnTagSelectedListener;
+
+public class HomeFragment extends Fragment implements OnTagSelectedListener {
     private FragmentHomeBinding binding;
     private FirebaseManager firebaseManager;
     private RecipeAdapter recipeAdapter;
+    private FilterTagAdapter filterTagAdapter;
     private List<Recipe> allRecipes = new ArrayList<>();
+    private String currentSearchQuery = "";
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -40,10 +45,59 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         
         firebaseManager = FirebaseManager.getInstance();
+        setupFilterTags();
         setupRecyclerView();
         setupSearchView();
         setupClickListeners();
         loadRecipes();
+    }
+
+    private void setupFilterTags() {
+        List<String> tags = Arrays.asList(
+            "All",
+            "Breakfast",
+            "Lunch",
+            "Dinner",
+            "Desserts",
+            "Vegetarian",
+            "Vegan",
+            "Favorites"
+        );
+        
+        filterTagAdapter = new FilterTagAdapter(tags, this);
+        binding.filterTagsRecyclerView.setAdapter(filterTagAdapter);
+    }
+
+    @Override
+    public void onTagSelected(String tag, boolean isSelected) {
+        filterRecipes();
+    }
+
+    private void filterRecipes() {
+        if (allRecipes == null) return;
+
+        List<String> selectedTags = filterTagAdapter.getSelectedTags();
+        List<Recipe> filteredRecipes = new ArrayList<>();
+
+        for (Recipe recipe : allRecipes) {
+            boolean matchesSearch = currentSearchQuery.isEmpty() ||
+                recipe.getTitle().toLowerCase().contains(currentSearchQuery.toLowerCase());
+
+            boolean matchesTags = selectedTags.isEmpty() || selectedTags.contains("All") ||
+                selectedTags.stream().anyMatch(tag -> {
+                    if (tag.equals("Favorites")) {
+                        return recipe.isFavorite();
+                    }
+                    return recipe.getCategory().equals(tag);
+                });
+
+            if (matchesSearch && matchesTags) {
+                filteredRecipes.add(recipe);
+            }
+        }
+
+        recipeAdapter.updateRecipes(filteredRecipes);
+        updateEmptyState(filteredRecipes.isEmpty());
     }
 
     private void setupRecyclerView() {
@@ -59,72 +113,16 @@ public class HomeFragment extends Fragment {
         binding.searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                searchRecipes(query);
-                return true;
+                return false;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                if (newText.length() > 2) {
-                    searchRecipes(newText);
-                } else if (newText.isEmpty()) {
-                    loadRecipes();
-                }
+                currentSearchQuery = newText;
+                filterRecipes();
                 return true;
             }
         });
-    }
-
-    private void searchRecipes(String query) {
-        binding.progressBar.setVisibility(View.VISIBLE);
-        
-        // First search local recipes
-        firebaseManager.searchRecipesByName(query)
-            .addOnSuccessListener(queryDocumentSnapshots -> {
-                List<Recipe> localRecipes = new ArrayList<>();
-                for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                    Recipe recipe = document.toObject(Recipe.class);
-                    recipe.setId(document.getId());
-                    localRecipes.add(recipe);
-                }
-                
-                // If no local recipes found, search online
-                if (localRecipes.isEmpty()) {
-                    searchOnlineRecipes(query);
-                } else {
-                    updateRecipeList(localRecipes);
-                }
-            })
-            .addOnFailureListener(e -> {
-                android.util.Log.e("HomeFragment", "Failed to search local recipes", e);
-                Toast.makeText(requireContext(), "Failed to search local recipes: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                binding.progressBar.setVisibility(View.GONE);
-            });
-    }
-
-    private void searchOnlineRecipes(String query) {
-        firebaseManager.searchOnlineRecipes(query, new FirebaseManager.OnRecipesLoadedListener() {
-            @Override
-            public void onRecipesLoaded(List<Recipe> recipes) {
-                updateRecipeList(recipes);
-            }
-
-            @Override
-            public void onError(String error) {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void updateRecipeList(List<Recipe> recipes) {
-        if (binding == null) {
-            return;
-        }
-        if (recipeAdapter != null) {
-            recipeAdapter.updateRecipes(recipes);
-        }
-        updateEmptyState(recipes.isEmpty());
     }
 
     private void setupClickListeners() {
@@ -152,7 +150,6 @@ public class HomeFragment extends Fragment {
     private void loadRecipes() {
         binding.progressBar.setVisibility(View.VISIBLE);
         
-        // First try to load user's recipes
         firebaseManager.getUserRecipes()
             .addOnSuccessListener(queryDocumentSnapshots -> {
                 allRecipes.clear();
@@ -161,42 +158,8 @@ public class HomeFragment extends Fragment {
                     recipe.setId(document.getId());
                     allRecipes.add(recipe);
                 }
-                
-                // If user has no recipes, add sample recipes only if not already added
-                if (allRecipes.isEmpty()) {
-                    firebaseManager.addSampleRecipesIfNeeded()
-                        .addOnSuccessListener(aVoid -> {
-                            // Reload recipes after adding samples (if needed)
-                            firebaseManager.getUserRecipes()
-                                .addOnSuccessListener(newDocs -> {
-                                    allRecipes.clear();
-                                    for (QueryDocumentSnapshot doc : newDocs) {
-                                        Recipe recipe = doc.toObject(Recipe.class);
-                                        recipe.setId(doc.getId());
-                                        allRecipes.add(recipe);
-                                    }
-                                    recipeAdapter.updateRecipes(allRecipes);
-                                    updateEmptyState(allRecipes.isEmpty());
-                                    binding.progressBar.setVisibility(View.GONE);
-                                })
-                                .addOnFailureListener(e -> {
-                                    android.util.Log.e("HomeFragment", "Failed to load recipes after adding samples", e);
-                                    Toast.makeText(requireContext(), "Failed to load recipes", Toast.LENGTH_SHORT).show();
-                                    binding.progressBar.setVisibility(View.GONE);
-                                    updateEmptyState(true);
-                                });
-                        })
-                        .addOnFailureListener(e -> {
-                            android.util.Log.e("HomeFragment", "Failed to add sample recipes", e);
-                            Toast.makeText(requireContext(), "Failed to add sample recipes", Toast.LENGTH_SHORT).show();
-                            binding.progressBar.setVisibility(View.GONE);
-                            updateEmptyState(true);
-                        });
-                } else {
-                    recipeAdapter.updateRecipes(allRecipes);
-                    updateEmptyState(false);
-                    binding.progressBar.setVisibility(View.GONE);
-                }
+                filterRecipes();
+                binding.progressBar.setVisibility(View.GONE);
             })
             .addOnFailureListener(e -> {
                 android.util.Log.e("HomeFragment", "Failed to load recipes", e);
