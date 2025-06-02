@@ -18,7 +18,13 @@ import com.example.cookbook.databinding.ActivityAddRecipeBinding;
 import com.example.cookbook.model.Ingredient;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.util.FirebaseManager;
+import com.example.cookbook.util.ImgBBUploadManager;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -113,50 +119,44 @@ public class AddRecipeActivity extends AppCompatActivity {
         String instructions = binding.etInstructions.getText().toString().trim();
 
         if (title.isEmpty() || instructions.isEmpty() || ingredients.isEmpty()) {
-            Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please fill in all required fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
         binding.progressBar.setVisibility(View.VISIBLE);
-        Recipe recipe = new Recipe(title, category, ingredients, instructions);
+
+        Recipe recipe = new Recipe();
+        recipe.setTitle(title);
+        recipe.setCategory(category);
+        recipe.setInstructions(instructions);
+        recipe.setIngredients(ingredients);
 
         if (selectedImageUri != null) {
-            uploadImageAndSaveRecipe(recipe);
+            // Upload image first
+            firebaseManager.uploadRecipeImage(selectedImageUri)
+                .addOnSuccessListener(imageUrl -> {
+                    recipe.setImageUrl(imageUrl);
+                    saveRecipeToFirestore(recipe);
+                })
+                .addOnFailureListener(e -> {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
         } else {
             saveRecipeToFirestore(recipe);
         }
     }
 
-    private void uploadImageAndSaveRecipe(Recipe recipe) {
-        firebaseManager.uploadRecipeImage(selectedImageUri)
-                .addOnSuccessListener(taskSnapshot -> {
-                    Log.d("AddRecipeActivity", "Image uploaded, fetching download URL...");
-                    taskSnapshot.getStorage().getDownloadUrl()
-                            .addOnSuccessListener(uri -> {
-                                Log.d("AddRecipeActivity", "Download URL: " + uri);
-                                recipe.setImageUrl(uri.toString());
-                                saveRecipeToFirestore(recipe);
-                            })
-                            .addOnFailureListener(e -> {
-                                binding.progressBar.setVisibility(View.GONE);
-                                Log.e("AddRecipeActivity", "Failed to get download URL", e);
-                                Toast.makeText(this, "Failed to get image URL", Toast.LENGTH_SHORT).show();
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    binding.progressBar.setVisibility(View.GONE);
-                    Log.e("AddRecipeActivity", "Image upload failed", e);
-                    Toast.makeText(this, R.string.msg_image_upload_failed, Toast.LENGTH_SHORT).show();
-                });
-    }
-
     private void saveRecipeToFirestore(Recipe recipe) {
+        Log.d("AddRecipeActivity", "Saving recipe to Firestore: " + recipe.toString());
         firebaseManager.addRecipe(recipe)
                 .addOnSuccessListener(documentReference -> {
+                    Log.d("AddRecipeActivity", "Recipe saved successfully with ID: " + documentReference.getId());
                     Toast.makeText(this, R.string.msg_recipe_saved, Toast.LENGTH_SHORT).show();
                     finish();
                 })
                 .addOnFailureListener(e -> {
+                    Log.e("AddRecipeActivity", "Failed to save recipe", e);
                     binding.progressBar.setVisibility(View.GONE);
                     Toast.makeText(this, R.string.msg_recipe_save_failed, Toast.LENGTH_SHORT).show();
                 });

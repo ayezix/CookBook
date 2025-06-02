@@ -11,7 +11,6 @@ import androidx.fragment.app.Fragment;
 
 import com.example.cookbook.ui.auth.LoginActivity;
 import com.example.cookbook.util.FirebaseManager;
-import com.example.cookbook.ui.favorites.FavoritesFragment;
 import com.example.cookbook.ui.home.HomeFragment;
 import com.example.cookbook.ui.profile.ProfileFragment;
 import com.example.cookbook.databinding.ActivityMainBinding;
@@ -56,8 +55,6 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
 
         if (itemId == R.id.navigation_home) {
             fragment = new HomeFragment();
-        } else if (itemId == R.id.navigation_favorites) {
-            fragment = new FavoritesFragment();
         } else if (itemId == R.id.navigation_profile) {
             fragment = new ProfileFragment();
         }

@@ -6,11 +6,6 @@
         android:title="@string/title_home" />
 
     <item
-        android:id="@+id/navigation_favorites"
-        android:icon="@drawable/ic_favorite_border"
-        android:title="@string/title_favorites" />
-
-    <item
         android:id="@+id/navigation_profile"
         android:icon="@drawable/ic_person"
         android:title="@string/title_profile" />
