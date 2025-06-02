@@ -78,16 +78,6 @@
                     android:textAppearance="?attr/textAppearanceBody2"
                     android:textColor="?attr/colorPrimary" />
 
-                <TextView
-                    android:id="@+id/btnAddSampleRecipes"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="?attr/selectableItemBackground"
-                    android:padding="8dp"
-                    android:text="Add sample recipes"
-                    android:textAppearance="?attr/textAppearanceBody2"
-                    android:textColor="?attr/colorPrimary" />
             </LinearLayout>
 
             <ProgressBar

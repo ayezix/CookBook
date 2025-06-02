@@ -9,4 +9,5 @@
     android:focusable="true"
     app:chipBackgroundColor="@color/chip_background"
     app:chipStrokeColor="@color/chip_stroke"
-    app:chipStrokeWidth="1dp" /> 
+    app:chipStrokeWidth="1dp"
+    app:checkedIconVisible="false" /> 

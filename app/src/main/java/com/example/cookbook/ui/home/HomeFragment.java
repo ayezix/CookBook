@@ -128,19 +128,6 @@ public class HomeFragment extends Fragment implements OnTagSelectedListener {
     private void setupClickListeners() {
         binding.fabAddRecipe.setOnClickListener(v -> 
             startActivity(new Intent(requireContext(), AddRecipeActivity.class)));
-            
-        binding.btnAddSampleRecipes.setOnClickListener(v -> {
-            binding.progressBar.setVisibility(View.VISIBLE);
-            firebaseManager.addSampleRecipes()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(requireContext(), "Sample recipes added successfully", Toast.LENGTH_SHORT).show();
-                    loadRecipes();
-                })
-                .addOnFailureListener(e -> {
-                    binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), "Failed to add sample recipes", Toast.LENGTH_SHORT).show();
-                });
-        });
 
         // Add click listener for the Create Recipe button in empty state
         binding.btnCreateRecipe.setOnClickListener(v -> 
