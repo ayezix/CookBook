@@ -144,9 +144,9 @@ public class FirebaseManager {
             Log.e(TAG, "Cannot get user recipes: User not logged in");
             return Tasks.forException(new Exception("User not logged in"));
         }
+        // First try a simple query without ordering
         return db.collection(RECIPES_COLLECTION)
                 .whereEqualTo("userId", userId)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get();
     }
 
