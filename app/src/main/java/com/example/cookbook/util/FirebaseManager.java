@@ -90,13 +90,85 @@ public class FirebaseManager {
                                     Log.e(TAG, "Error creating user document", e));
                     }
                 })
-                .addOnFailureListener(e -> 
-                    Log.e(TAG, "Registration failed", e));
+                .addOnFailureListener(e -> {
+                    String errorMessage = translateRegistrationError(e.getMessage());
+                    Log.e(TAG, "Registration failed: " + errorMessage);
+                })
+                .continueWithTask(task -> {
+                    if (task.isSuccessful()) {
+                        return task;
+                    } else {
+                        String errorMessage = translateRegistrationError(task.getException().getMessage());
+                        return Tasks.forException(new Exception(errorMessage));
+                    }
+                });
+    }
+
+    private String translateRegistrationError(String firebaseError) {
+        if (firebaseError == null) {
+            return "Registration failed";
+        }
+        
+        if (firebaseError.contains("email address is already in use")) {
+            return "This email is already registered";
+        } else if (firebaseError.contains("badly formatted")) {
+            return "Invalid email format";
+        } else if (firebaseError.contains("network error")) {
+            return "Network error. Please check your connection";
+        } else if (firebaseError.contains("password is too weak")) {
+            return "Password is too weak. Use a stronger password";
+        } else {
+            return "Registration failed: " + firebaseError;
+        }
     }
 
     public Task<AuthResult> loginUser(String email, String password) {
         Log.d(TAG, "Attempting to login user: " + email);
-        return auth.signInWithEmailAndPassword(email, password);
+        return auth.signInWithEmailAndPassword(email, password)
+                .addOnFailureListener(e -> {
+                    String errorMessage = translateFirebaseError(e.getMessage());
+                    Log.e(TAG, "Login failed: " + errorMessage);
+                })
+                .continueWithTask(task -> {
+                    if (task.isSuccessful()) {
+                        return task;
+                    } else {
+                        String errorMessage = translateFirebaseError(task.getException().getMessage());
+                        return Tasks.forException(new Exception(errorMessage));
+                    }
+                });
+    }
+
+    private String translateFirebaseError(String firebaseError) {
+        if (firebaseError == null) {
+            return "Login failed";
+        }
+        
+        // Log the exact Firebase error for debugging
+        Log.d(TAG, "Firebase error: " + firebaseError);
+        
+        // Check for user not found errors first
+        if (firebaseError.contains("no user record") || 
+            firebaseError.contains("user not found") ||
+            firebaseError.contains("invalid email") ||
+            firebaseError.contains("there is no user record")) {
+            return "No account found with this email";
+        } else if (firebaseError.contains("password is invalid") ||
+                   firebaseError.contains("The supplied auth credential is incorrect") ||
+                   firebaseError.contains("supplied auth credential is malformed") ||
+                   firebaseError.contains("has expired")) {
+            // Firebase doesn't distinguish between wrong password and non-existent user
+            // for security reasons, so we provide a generic message
+            return "Invalid email or password";
+        } else if (firebaseError.contains("badly formatted")) {
+            return "Invalid email format";
+        } else if (firebaseError.contains("network error")) {
+            return "Network error. Please check your connection";
+        } else if (firebaseError.contains("too many requests")) {
+            return "Too many attempts. Please try again later";
+        } else {
+            return "Login failed: " + firebaseError;
+        }
     }
 
     public void logoutUser() {
@@ -291,9 +363,34 @@ public class FirebaseManager {
 
     public Task<Void> sendPasswordResetEmail(String email) {
         Log.d(TAG, "Sending password reset email to: " + email);
-        return auth.sendPasswordResetEmail(email);
+        return auth.sendPasswordResetEmail(email)
+                .addOnFailureListener(e -> {
+                    String errorMessage = translatePasswordResetError(e.getMessage());
+                    Log.e(TAG, "Password reset failed: " + errorMessage);
+                })
+                .continueWithTask(task -> {
+                    if (task.isSuccessful()) {
+                        return task;
+                    } else {
+                        String errorMessage = translatePasswordResetError(task.getException().getMessage());
+                        return Tasks.forException(new Exception(errorMessage));
+                    }
+                });
     }
 
+    private String translatePasswordResetError(String firebaseError) {
+        if (firebaseError == null) {
+            return "Failed to send reset email";
+        }
+        
+        if (firebaseError.contains("badly formatted")) {
+            return "Invalid email format";
+        } else if (firebaseError.contains("no user record")) {
+            return "No account found with this email";
+        } else {
+            return "Error: " + firebaseError;
+        }
+    }
 
     public Task<Void> addSampleRecipes() {
         List<Recipe> sampleRecipes = new ArrayList<>();

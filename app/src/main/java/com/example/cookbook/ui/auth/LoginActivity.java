@@ -51,25 +51,7 @@ public class LoginActivity extends AppCompatActivity {
                             String errorMessage;
                             Exception exception = task.getException();
                             if (exception != null) {
-                                String errorCode = exception.getMessage();
-                                Log.d("LoginActivity", "Error code: " + errorCode);
-                                if (errorCode != null) {
-                                    if (errorCode.contains("no user record")) {
-                                        errorMessage = "No account found with this email";
-                                    } else if (errorCode.contains("password is invalid")) {
-                                        errorMessage = "Invalid password";
-                                    } else if (errorCode.contains("badly formatted")) {
-                                        errorMessage = "Invalid email format";
-                                    } else if (errorCode.contains("network error")) {
-                                        errorMessage = "Network error. Please check your connection";
-                                    } else if (errorCode.contains("too many requests")) {
-                                        errorMessage = "Too many attempts. Please try again later";
-                                    } else {
-                                        errorMessage = "Login failed: " + errorCode;
-                                    }
-                                } else {
-                                    errorMessage = getString(R.string.msg_login_failed);
-                                }
+                                errorMessage = exception.getMessage();
                             } else {
                                 errorMessage = getString(R.string.msg_login_failed);
                             }
@@ -106,23 +88,7 @@ public class LoginActivity extends AppCompatActivity {
                             String errorMessage;
                             Exception exception = task.getException();
                             if (exception != null) {
-                                String errorCode = exception.getMessage();
-                                Log.d("LoginActivity", "Registration error: " + errorCode);
-                                if (errorCode != null) {
-                                    if (errorCode.contains("email address is already in use")) {
-                                        errorMessage = "This email is already registered";
-                                    } else if (errorCode.contains("badly formatted")) {
-                                        errorMessage = "Invalid email format";
-                                    } else if (errorCode.contains("network error")) {
-                                        errorMessage = "Network error. Please check your connection";
-                                    } else if (errorCode.contains("password is too weak")) {
-                                        errorMessage = "Password is too weak. Use a stronger password";
-                                    } else {
-                                        errorMessage = "Registration failed: " + errorCode;
-                                    }
-                                } else {
-                                    errorMessage = getString(R.string.msg_register_failed);
-                                }
+                                errorMessage = exception.getMessage();
                             } else {
                                 errorMessage = getString(R.string.msg_register_failed);
                             }
@@ -147,24 +113,12 @@ public class LoginActivity extends AppCompatActivity {
                         String errorMessage = "Failed to send reset email";
                         Exception exception = task.getException();
                         if (exception != null) {
-                            String errorCode = exception.getMessage();
-                            if (errorCode != null) {
-                                if (errorCode.contains("badly formatted")) {
-                                    errorMessage = "Invalid email format";
-                                } else if (errorCode.contains("no user record")) {
-                                    errorMessage = "No account found with this email";
-                                } else {
-                                    errorMessage = "Error: " + errorCode;
-                                }
-                            }
+                            errorMessage = exception.getMessage();
                         }
                         Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
                     }
                 });
     }
-
-
-
 
     private boolean validateInput(String email, String password) {
         boolean isValid = true;
@@ -181,6 +135,7 @@ public class LoginActivity extends AppCompatActivity {
             binding.etPassword.setError("Password must be at least 6 characters");
             isValid = false;
         }
+        //to do email validation (and also special character)
 
         return isValid;
     }
