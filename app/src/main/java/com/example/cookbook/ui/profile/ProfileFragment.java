@@ -11,7 +11,6 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.cookbook.databinding.FragmentProfileBinding;
-import com.example.cookbook.ui.auth.LoginActivity;
 import com.example.cookbook.util.FirebaseManager;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -47,7 +46,7 @@ public class ProfileFragment extends Fragment {
 
     private void handleLogout() {
         firebaseManager.logoutUser();
-        startActivity(new Intent(requireContext(), LoginActivity.class));
+        startActivity(new Intent(requireContext(), com.example.cookbook.MainActivity.class));
         requireActivity().finish();
     }
 

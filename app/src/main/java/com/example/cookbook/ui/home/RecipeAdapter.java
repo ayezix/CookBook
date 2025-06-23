@@ -81,7 +81,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
 
             // Set favorite state
             binding.ivFavorite.setImageResource(
-                recipe.isFavorite() ? R.drawable.ic_favorite : R.drawable.ic_favorite_border
+                recipe.isFavorite() ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
             );
 
             // Set click listeners
@@ -95,7 +95,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                 boolean newFavoriteState = !recipe.isFavorite();
                 recipe.setFavorite(newFavoriteState);
                 binding.ivFavorite.setImageResource(
-                    newFavoriteState ? R.drawable.ic_favorite : R.drawable.ic_favorite_border
+                    newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
                 );
                 
                 if (recipe.isImportedFromApi() && newFavoriteState) {
@@ -109,7 +109,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                             // Revert the UI state if the operation failed
                             recipe.setFavorite(!newFavoriteState);
                             binding.ivFavorite.setImageResource(
-                                !newFavoriteState ? R.drawable.ic_favorite : R.drawable.ic_favorite_border
+                                !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
                             );
                             Toast.makeText(binding.getRoot().getContext(), 
                                 "Failed to add recipe to favorites", Toast.LENGTH_SHORT).show();
@@ -127,7 +127,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                             // Revert the UI state if the operation failed
                             recipe.setFavorite(!newFavoriteState);
                             binding.ivFavorite.setImageResource(
-                                !newFavoriteState ? R.drawable.ic_favorite : R.drawable.ic_favorite_border
+                                !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
                             );
                             Toast.makeText(binding.getRoot().getContext(), 
                                 "Failed to update favorite status", Toast.LENGTH_SHORT).show();

@@ -8,6 +8,7 @@
         <item name="android:colorBackground">@color/white</item>
         <item name="colorSurface">@color/orange_surface</item>
         <item name="android:statusBarColor">@color/orange_primary_variant</item>
+        <item name="android:fontFamily">@font/zain_regular</item>
     </style>
 
     <style name="Theme.CookBook" parent="Base.Theme.CookBook" />
