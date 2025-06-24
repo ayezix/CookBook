@@ -83,7 +83,9 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:contentDescription="Add Recipe"
-        app:srcCompat="@drawable/ic_add" />
+        android:outlineSpotShadowColor="@color/orange_primary"
+        app:srcCompat="@drawable/ic_add"
+        app:backgroundTint="@color/orange_primary" />
 
     <ProgressBar
         android:id="@+id/progressBar"

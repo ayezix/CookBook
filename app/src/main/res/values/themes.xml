@@ -5,6 +5,7 @@
         <item name="colorPrimary">@color/orange_primary</item>
         <item name="colorPrimaryVariant">@color/orange_primary_variant</item>
         <item name="colorSecondary">@color/orange_secondary</item>
+        <item name="colorPrimaryContainer">@color/orange_secondary</item>
         <item name="android:colorBackground">@color/white</item>
         <item name="colorSurface">@color/orange_surface</item>
         <item name="android:statusBarColor">@color/orange_primary_variant</item>
