@@ -5,6 +5,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.app.AlertDialog;
+import android.text.InputType;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,12 +46,44 @@ public class ProfileFragment extends Fragment {
 
     private void setupClickListeners() {
         binding.btnLogout.setOnClickListener(v -> handleLogout());
+        binding.btnChangePassword.setOnClickListener(v -> showChangePasswordDialog());
     }
 
     private void handleLogout() {
         firebaseManager.logoutUser();
         startActivity(new Intent(requireContext(), com.example.cookbook.MainActivity.class));
         requireActivity().finish();
+    }
+
+    private void showChangePasswordDialog() {
+        EditText input = new EditText(requireContext());
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        input.setHint("New Password");
+
+        new AlertDialog.Builder(requireContext())
+            .setTitle("Change Password")
+            .setMessage("Enter your new password:")
+            .setView(input)
+            .setPositiveButton("Change", (dialog, which) -> {
+                String newPassword = input.getText().toString().trim();
+                if (newPassword.length() < 6) {
+                    Toast.makeText(requireContext(), "Password must be at least 6 characters", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                FirebaseUser user = firebaseManager.getCurrentUser();
+                if (user != null) {
+                    user.updatePassword(newPassword)
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                Toast.makeText(requireContext(), "Password updated successfully", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(requireContext(), "Failed to update password", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                }
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 
     @Override

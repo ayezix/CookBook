@@ -1,7 +1,9 @@
 package com.example.cookbook.ui.recipe;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,6 +46,7 @@ public class RecipeDetailActivity extends AppCompatActivity {
             TextView tvInstructions = findViewById(R.id.tvInstructions);
             ImageView ivRecipe = findViewById(R.id.ivRecipe);
             MaterialButton btnDeleteRecipe = findViewById(R.id.btnDeleteRecipe);
+            MaterialButton btnEditRecipe = findViewById(R.id.btnEditRecipe);
 
             tvTitle.setText(recipe.getTitle());
             tvCategory.setText(recipe.getCategory());
@@ -66,6 +69,31 @@ public class RecipeDetailActivity extends AppCompatActivity {
                     .placeholder(R.drawable.placeholder_recipe)
                     .error(R.drawable.placeholder_recipe)
                     .into(ivRecipe);
+            }
+
+            // Show edit button only for user-created recipes
+            Log.d(TAG, "Recipe imported from API: " + recipe.isImportedFromApi());
+            Log.d(TAG, "Recipe userId: " + recipe.getUserId());
+            Log.d(TAG, "Current user ID: " + firebaseManager.getCurrentUserId());
+            
+            // Show edit button only for user-created recipes (not imported from API)
+            // Also check if the recipe belongs to the current user
+            boolean isUserCreated = !recipe.isImportedFromApi() && 
+                                   recipe.getUserId() != null && 
+                                   recipe.getUserId().equals(firebaseManager.getCurrentUserId());
+            
+            if (isUserCreated) {
+                Log.d(TAG, "Showing edit button - recipe is user-created");
+                btnEditRecipe.setVisibility(View.VISIBLE);
+                btnEditRecipe.setOnClickListener(v -> {
+                    Intent intent = new Intent(this, AddRecipeActivity.class);
+                    intent.putExtra("edit_recipe", true);
+                    intent.putExtra("recipe", recipe);
+                    startActivity(intent);
+                });
+            } else {
+                Log.d(TAG, "Hiding edit button - recipe is from API or not owned by user");
+                btnEditRecipe.setVisibility(View.GONE);
             }
 
             // Set up delete button click listener

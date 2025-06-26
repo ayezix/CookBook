@@ -130,12 +130,12 @@
                 android:layout_marginTop="8dp"
                 android:text="@string/btn_add_ingredient" />
 
-            <TextView
-                android:id="@+id/tvIngredients"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvIngredients"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:textAppearance="?attr/textAppearanceBody2" />
+                android:nestedScrollingEnabled="false" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"

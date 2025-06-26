@@ -16,6 +16,7 @@ import com.example.cookbook.databinding.ItemRecipeBinding;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.util.FirebaseManager;
 import com.example.cookbook.ui.recipe.RecipeDetailActivity;
+import com.example.cookbook.ui.recipe.AddRecipeActivity;
 
 import java.util.List;
 

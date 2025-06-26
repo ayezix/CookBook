@@ -18,6 +18,7 @@
     
     <!-- Recipe Related -->
     <string name="title_add_recipe">Add Recipe</string>
+    <string name="title_edit_recipe">Edit Recipe</string>
     <string name="hint_recipe_title">Recipe Title</string>
     <string name="hint_recipe_category">Category</string>
     <string name="hint_recipe_ingredients">Ingredients</string>
