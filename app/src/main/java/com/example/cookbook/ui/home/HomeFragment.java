@@ -21,6 +21,7 @@ import com.example.cookbook.util.FirebaseManager;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 public class HomeFragment extends Fragment {
@@ -46,9 +47,22 @@ public class HomeFragment extends Fragment {
         loadRecipes();
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == getActivity().RESULT_OK && data != null) {
+            String deletedId = data.getStringExtra("deleted_recipe_id");
+            if (deletedId != null) {
+                removeRecipeById(deletedId);
+            }
+        }
+    }
+
     private void setupRecyclerView() {
         recipeAdapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
-            // No-op: handled in RecipeAdapter now
+            Intent intent = new Intent(requireContext(), com.example.cookbook.ui.recipe.RecipeDetailActivity.class);
+            intent.putExtra("recipe", recipe);
+            startActivityForResult(intent, 1002);
         });
         
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -76,7 +90,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void searchRecipes(String query) {
-        binding.progressBar.setVisibility(View.VISIBLE);
+        Toast.makeText(requireContext(), "Loading...", Toast.LENGTH_SHORT).show();
         
         // First search local recipes
         firebaseManager.searchRecipesByName(query)
@@ -98,11 +112,11 @@ public class HomeFragment extends Fragment {
             .addOnFailureListener(e -> {
                 android.util.Log.e("HomeFragment", "Failed to search local recipes", e);
                 Toast.makeText(requireContext(), "Failed to search local recipes: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                binding.progressBar.setVisibility(View.GONE);
             });
     }
 
     private void searchOnlineRecipes(String query) {
+        Toast.makeText(requireContext(), "Loading...", Toast.LENGTH_SHORT).show();
         firebaseManager.searchOnlineRecipes(query, new FirebaseManager.OnRecipesLoadedListener() {
             @Override
             public void onRecipesLoaded(List<Recipe> recipes) {
@@ -111,7 +125,6 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onError(String error) {
-                binding.progressBar.setVisibility(View.GONE);
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
             }
         });
@@ -121,10 +134,19 @@ public class HomeFragment extends Fragment {
         if (binding == null) {
             return;
         }
-        if (recipeAdapter != null) {
-            recipeAdapter.updateRecipes(recipes);
+        // Remove duplicates by ID
+        List<Recipe> uniqueRecipes = new ArrayList<>();
+        HashSet<String> seenIds = new HashSet<>();
+        for (Recipe recipe : recipes) {
+            if (recipe.getId() != null && !seenIds.contains(recipe.getId())) {
+                uniqueRecipes.add(recipe);
+                seenIds.add(recipe.getId());
+            }
         }
-        updateEmptyState(recipes.isEmpty());
+        if (recipeAdapter != null) {
+            recipeAdapter.updateRecipes(uniqueRecipes);
+        }
+        updateEmptyState(uniqueRecipes.isEmpty());
     }
 
     private void setupClickListeners() {
@@ -132,14 +154,13 @@ public class HomeFragment extends Fragment {
             startActivity(new Intent(requireContext(), AddRecipeActivity.class)));
             
         binding.btnAddSampleRecipes.setOnClickListener(v -> {
-            binding.progressBar.setVisibility(View.VISIBLE);
+            Toast.makeText(requireContext(), "Loading...", Toast.LENGTH_SHORT).show();
             firebaseManager.addSampleRecipes()
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(requireContext(), "Sample recipes added successfully", Toast.LENGTH_SHORT).show();
                     loadRecipes();
                 })
                 .addOnFailureListener(e -> {
-                    binding.progressBar.setVisibility(View.GONE);
                     Toast.makeText(requireContext(), "Failed to add sample recipes", Toast.LENGTH_SHORT).show();
                 });
         });
@@ -150,58 +171,57 @@ public class HomeFragment extends Fragment {
     }
 
     private void loadRecipes() {
-        binding.progressBar.setVisibility(View.VISIBLE);
-        
-        // First try to load user's recipes
+        Toast.makeText(requireContext(), "Loading...", Toast.LENGTH_SHORT).show();
         firebaseManager.getUserRecipes()
             .addOnSuccessListener(queryDocumentSnapshots -> {
                 allRecipes.clear();
+                HashSet<String> seenIds = new HashSet<>();
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                     Recipe recipe = document.toObject(Recipe.class);
                     recipe.setId(document.getId());
-                    allRecipes.add(recipe);
+                    if (recipe.getId() != null && !seenIds.contains(recipe.getId())) {
+                        allRecipes.add(recipe);
+                        seenIds.add(recipe.getId());
+                    }
                 }
-                
                 // If user has no recipes, add sample recipes only if not already added
                 if (allRecipes.isEmpty()) {
                     firebaseManager.addSampleRecipesIfNeeded()
-                        .addOnSuccessListener(aVoid -> {
-                            // Reload recipes after adding samples (if needed)
+                        .addOnSuccessListener(aVoid ->
                             firebaseManager.getUserRecipes()
                                 .addOnSuccessListener(newDocs -> {
                                     allRecipes.clear();
+                                    HashSet<String> seenIds2 = new HashSet<>();
                                     for (QueryDocumentSnapshot doc : newDocs) {
                                         Recipe recipe = doc.toObject(Recipe.class);
                                         recipe.setId(doc.getId());
-                                        allRecipes.add(recipe);
+                                        if (recipe.getId() != null && !seenIds2.contains(recipe.getId())) {
+                                            allRecipes.add(recipe);
+                                            seenIds2.add(recipe.getId());
+                                        }
                                     }
                                     recipeAdapter.updateRecipes(allRecipes);
                                     updateEmptyState(allRecipes.isEmpty());
-                                    binding.progressBar.setVisibility(View.GONE);
                                 })
                                 .addOnFailureListener(e -> {
                                     android.util.Log.e("HomeFragment", "Failed to load recipes after adding samples", e);
                                     Toast.makeText(requireContext(), "Failed to load recipes", Toast.LENGTH_SHORT).show();
-                                    binding.progressBar.setVisibility(View.GONE);
                                     updateEmptyState(true);
-                                });
-                        })
+                                })
+                        )
                         .addOnFailureListener(e -> {
                             android.util.Log.e("HomeFragment", "Failed to add sample recipes", e);
                             Toast.makeText(requireContext(), "Failed to add sample recipes", Toast.LENGTH_SHORT).show();
-                            binding.progressBar.setVisibility(View.GONE);
                             updateEmptyState(true);
                         });
                 } else {
                     recipeAdapter.updateRecipes(allRecipes);
                     updateEmptyState(false);
-                    binding.progressBar.setVisibility(View.GONE);
                 }
             })
             .addOnFailureListener(e -> {
                 android.util.Log.e("HomeFragment", "Failed to load recipes", e);
                 Toast.makeText(requireContext(), "Failed to load recipes: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                binding.progressBar.setVisibility(View.GONE);
                 updateEmptyState(true);
             });
     }
@@ -212,6 +232,19 @@ public class HomeFragment extends Fragment {
         }
         binding.emptyStateLayout.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         binding.recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+    }
+
+    // Add a public method to remove a recipe by ID
+    public void removeRecipeById(String recipeId) {
+        List<Recipe> currentList = new ArrayList<>(recipeAdapter.getRecipes());
+        for (int i = 0; i < currentList.size(); i++) {
+            if (currentList.get(i).getId().equals(recipeId)) {
+                currentList.remove(i);
+                break;
+            }
+        }
+        recipeAdapter.updateRecipes(currentList);
+        updateEmptyState(currentList.isEmpty());
     }
 
     @Override

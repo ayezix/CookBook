@@ -24,9 +24,22 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
     private List<Recipe> recipes;
     private final OnRecipeClickListener listener;
     private final FirebaseManager firebaseManager;
+    private OnRecipeUnfavoritedListener onRecipeUnfavoritedListener;
 
     public interface OnRecipeClickListener {
         void onRecipeClick(Recipe recipe);
+    }
+
+    public interface OnRecipeUnfavoritedListener {
+        void onRecipeUnfavorited(Recipe recipe);
+    }
+
+    public void setOnRecipeUnfavoritedListener(OnRecipeUnfavoritedListener listener) {
+        this.onRecipeUnfavoritedListener = listener;
+    }
+
+    public List<Recipe> getRecipes() {
+        return recipes;
     }
 
     public RecipeAdapter(List<Recipe> recipes, OnRecipeClickListener listener) {
@@ -94,24 +107,17 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
             
             binding.ivFavorite.setOnClickListener(v -> {
                 boolean newFavoriteState = !recipe.isFavorite();
-                recipe.setFavorite(newFavoriteState);
-                binding.ivFavorite.setImageResource(
-                    newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
-                );
-                
+                // Update Firestore first, then update UI and local state only if successful
                 if (recipe.isImportedFromApi() && newFavoriteState) {
                     // For API recipes, use favoriteApiRecipe only when favoriting
                     firebaseManager.favoriteApiRecipe(recipe)
                         .addOnSuccessListener(aVoid -> {
+                            recipe.setFavorite(true);
+                            binding.ivFavorite.setImageResource(R.drawable.ic_favorite_alt_filled);
                             Toast.makeText(binding.getRoot().getContext(), 
                                 "Recipe added to favorites", Toast.LENGTH_SHORT).show();
                         })
                         .addOnFailureListener(e -> {
-                            // Revert the UI state if the operation failed
-                            recipe.setFavorite(!newFavoriteState);
-                            binding.ivFavorite.setImageResource(
-                                !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
-                            );
                             Toast.makeText(binding.getRoot().getContext(), 
                                 "Failed to add recipe to favorites", Toast.LENGTH_SHORT).show();
                         });
@@ -119,17 +125,19 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                     // For local recipes or when unfavoriting, use toggleFavoriteRecipe
                     firebaseManager.toggleFavoriteRecipe(recipe.getId(), newFavoriteState)
                         .addOnSuccessListener(aVoid -> {
+                            recipe.setFavorite(newFavoriteState);
+                            binding.ivFavorite.setImageResource(
+                                newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
+                            );
                             if (!newFavoriteState) {
+                                if (onRecipeUnfavoritedListener != null) {
+                                    onRecipeUnfavoritedListener.onRecipeUnfavorited(recipe);
+                                }
                                 Toast.makeText(binding.getRoot().getContext(), 
                                     "Recipe removed from favorites", Toast.LENGTH_SHORT).show();
                             }
                         })
                         .addOnFailureListener(e -> {
-                            // Revert the UI state if the operation failed
-                            recipe.setFavorite(!newFavoriteState);
-                            binding.ivFavorite.setImageResource(
-                                !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
-                            );
                             Toast.makeText(binding.getRoot().getContext(), 
                                 "Failed to update favorite status", Toast.LENGTH_SHORT).show();
                         });

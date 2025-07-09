@@ -7,6 +7,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.text.Html;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -50,7 +51,12 @@ public class RecipeDetailActivity extends AppCompatActivity {
 
             tvTitle.setText(recipe.getTitle());
             tvCategory.setText(recipe.getCategory());
-            tvInstructions.setText(recipe.getInstructions());
+            // Parse HTML in instructions
+            if (recipe.getInstructions() != null) {
+                tvInstructions.setText(Html.fromHtml(recipe.getInstructions(), Html.FROM_HTML_MODE_LEGACY));
+            } else {
+                tvInstructions.setText("");
+            }
 
             StringBuilder ingredientsText = new StringBuilder();
             if (recipe.getIngredients() != null) {
@@ -120,6 +126,10 @@ public class RecipeDetailActivity extends AppCompatActivity {
             firebaseManager.deleteRecipe(recipe.getId())
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "Recipe deleted successfully", Toast.LENGTH_SHORT).show();
+                    // Notify parent (FavoritesFragment) if needed
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("deleted_recipe_id", recipe.getId());
+                    setResult(RESULT_OK, resultIntent);
                     finish();
                 })
                 .addOnFailureListener(e -> {

@@ -171,6 +171,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         }
 
         binding.progressBar.setVisibility(View.VISIBLE);
+        Toast.makeText(this, "Loading...", Toast.LENGTH_SHORT).show();
 
         if (isEditMode && editingRecipe != null) {
             // Update existing recipe
