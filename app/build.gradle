@@ -26,7 +26,6 @@ android {
         
         // Add API key to BuildConfig
         buildConfigField "String", "IMGBB_API_KEY", "\"${localProperties.getProperty('IMGBB_API_KEY')}\""
-        buildConfigField "String", "SPOONACULAR_API_KEY", "\"${localProperties.getProperty('SPOONACULAR_API_KEY')}\""
     }
 
     buildTypes {
@@ -36,8 +35,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
     buildFeatures {
         viewBinding true
@@ -87,10 +86,10 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    implementation 'com.cloudinary:cloudinary-android:2.3.1'
+    implementation 'com.cloudinary:cloudinary-android:2.4.0'
 
     // Add OkHttp for image uploads
-    implementation 'com.squareup.okhttp3:okhttp:4.9.3'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
     // Navigation Component
     implementation "androidx.navigation:navigation-fragment-ktx:2.7.7"

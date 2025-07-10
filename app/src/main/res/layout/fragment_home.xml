@@ -9,15 +9,35 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <androidx.appcompat.widget.SearchView
-            android:id="@+id/searchView"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
             android:layout_margin="8dp"
-            android:background="@drawable/bg_search"
-            android:elevation="2dp"
-            app:iconifiedByDefault="false"
-            app:queryHint="Search recipes..." />
+            android:gravity="center_vertical">
+
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/searchView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_search"
+                android:elevation="2dp"
+                app:iconifiedByDefault="false"
+                app:queryHint="Search recipes..." />
+
+            <ImageButton
+                android:id="@+id/btnFilter"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_search"
+                android:src="@drawable/ic_filter"
+                android:contentDescription="Filter recipes"
+                android:padding="12dp"
+                android:elevation="2dp" />
+
+        </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerView"

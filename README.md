@@ -40,6 +40,7 @@ A modern Android application for managing and sharing recipes, built with Java a
   - Firebase Authentication
   - Firebase Firestore
   - Firebase Storage
+  - TheMealDB API (Recipe search)
   - ImgBB API (Image hosting)
 
 ## Setup Instructions
@@ -88,6 +89,7 @@ app/
 - API keys are stored securely in `local.properties`
 - User authentication is handled through Firebase
 - Image uploads are processed through secure APIs
+- TheMealDB API is free to use and doesn't require authentication
 
 ## License
 

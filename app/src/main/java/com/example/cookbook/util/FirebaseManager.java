@@ -8,9 +8,12 @@ import com.example.cookbook.BuildConfig;
 import com.example.cookbook.CookBookApplication;
 import com.example.cookbook.R;
 import com.example.cookbook.api.ApiClient;
-import com.example.cookbook.api.model.ApiIngredient;
 import com.example.cookbook.api.model.ApiRecipe;
 import com.example.cookbook.api.model.ApiRecipeResponse;
+import com.example.cookbook.api.model.CategoryResponse;
+import com.example.cookbook.api.model.AreaResponse;
+import com.example.cookbook.api.model.IngredientResponse;
+import com.example.cookbook.model.RecipeFilter;
 import com.example.cookbook.model.Ingredient;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.model.User;
@@ -497,52 +500,142 @@ public class FirebaseManager {
     }
 
     public void searchOnlineRecipes(String query, OnRecipesLoadedListener listener) {
-        String apiKey = BuildConfig.SPOONACULAR_API_KEY;
-        ApiClient.getRecipeService().searchRecipes(apiKey, query, 10, true, true, true, true)
-            .enqueue(new Callback<ApiRecipeResponse>() {
-                @Override
-                public void onResponse(Call<ApiRecipeResponse> call, Response<ApiRecipeResponse> response) {
-                    if (response.isSuccessful() && response.body() != null) {
-                        List<ApiRecipe> searchResults = response.body().getResults();
-                        if (searchResults != null && !searchResults.isEmpty()) {
-                            // Get recipe IDs
-                            StringBuilder ids = new StringBuilder();
-                            for (ApiRecipe recipe : searchResults) {
-                                if (ids.length() > 0) ids.append(",");
-                                ids.append(recipe.getId());
-                            }
-                            
-                            // Get detailed recipe information
-                            ApiClient.getRecipeService().getRecipeInformation(apiKey, ids.toString(), true)
-                                .enqueue(new Callback<List<ApiRecipe>>() {
-                                    @Override
-                                    public void onResponse(Call<List<ApiRecipe>> call, Response<List<ApiRecipe>> response) {
-                                        if (response.isSuccessful() && response.body() != null) {
-                                            List<Recipe> recipes = convertApiRecipesToLocalRecipes(response.body());
-                                            listener.onRecipesLoaded(recipes);
-                                        } else {
-                                            listener.onError("Failed to load recipe details");
-                                        }
-                                    }
+        searchOnlineRecipesWithFilter(RecipeFilter.bySearch(query), listener);
+    }
 
-                                    @Override
-                                    public void onFailure(Call<List<ApiRecipe>> call, Throwable t) {
-                                        listener.onError(t.getMessage());
-                                    }
-                                });
-                        } else {
-                            listener.onRecipesLoaded(new ArrayList<>());
+    public void searchOnlineRecipesWithFilter(RecipeFilter filter, OnRecipesLoadedListener listener) {
+        Call<ApiRecipeResponse> call;
+        
+        switch (filter.getType()) {
+            case CATEGORY:
+                call = ApiClient.getRecipeService().filterByCategory(filter.getValue());
+                break;
+            case AREA:
+                call = ApiClient.getRecipeService().filterByArea(filter.getValue());
+                break;
+            case INGREDIENT:
+                call = ApiClient.getRecipeService().filterByIngredient(filter.getValue());
+                break;
+            case SEARCH:
+            default:
+                call = ApiClient.getRecipeService().searchRecipes(filter.getValue());
+                break;
+        }
+
+        call.enqueue(new Callback<ApiRecipeResponse>() {
+            @Override
+            public void onResponse(Call<ApiRecipeResponse> call, Response<ApiRecipeResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<ApiRecipe> searchResults = response.body().getResults();
+                    if (searchResults != null && !searchResults.isEmpty()) {
+                        List<Recipe> recipes = convertApiRecipesToLocalRecipes(searchResults);
+                        
+                        // Apply additional local filters (like vegan, gluten-free)
+                        recipes = applyLocalFilters(recipes, filter);
+                        
+                        // Ensure we only return maximum 10 results
+                        if (recipes.size() > 10) {
+                            recipes = recipes.subList(0, 10);
                         }
+                        listener.onRecipesLoaded(recipes);
                     } else {
-                        listener.onError("Failed to load recipes");
+                        listener.onRecipesLoaded(new ArrayList<>());
+                    }
+                } else {
+                    listener.onError("Failed to load recipes");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiRecipeResponse> call, Throwable t) {
+                listener.onError(t.getMessage());
+            }
+        });
+    }
+
+    // Get available categories for filtering
+    public void getCategories(OnCategoriesLoadedListener listener) {
+        ApiClient.getRecipeService().getCategories()
+            .enqueue(new Callback<CategoryResponse>() {
+                @Override
+                public void onResponse(Call<CategoryResponse> call, Response<CategoryResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        listener.onCategoriesLoaded(response.body().getCategories());
+                    } else {
+                        listener.onError("Failed to load categories");
                     }
                 }
 
                 @Override
-                public void onFailure(Call<ApiRecipeResponse> call, Throwable t) {
+                public void onFailure(Call<CategoryResponse> call, Throwable t) {
                     listener.onError(t.getMessage());
                 }
             });
+    }
+
+    // Get available areas for filtering
+    public void getAreas(OnAreasLoadedListener listener) {
+        ApiClient.getRecipeService().getAreas("list")
+            .enqueue(new Callback<AreaResponse>() {
+                @Override
+                public void onResponse(Call<AreaResponse> call, Response<AreaResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        listener.onAreasLoaded(response.body().getAreas());
+                    } else {
+                        listener.onError("Failed to load areas");
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<AreaResponse> call, Throwable t) {
+                    listener.onError(t.getMessage());
+                }
+            });
+    }
+
+    // Get available ingredients for filtering
+    public void getIngredients(OnIngredientsLoadedListener listener) {
+        ApiClient.getRecipeService().getIngredients("list")
+            .enqueue(new Callback<IngredientResponse>() {
+                @Override
+                public void onResponse(Call<IngredientResponse> call, Response<IngredientResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        listener.onIngredientsLoaded(response.body().getIngredients());
+                    } else {
+                        listener.onError("Failed to load ingredients");
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<IngredientResponse> call, Throwable t) {
+                    listener.onError(t.getMessage());
+                }
+            });
+    }
+
+    // Apply local filters for dietary restrictions
+    private List<Recipe> applyLocalFilters(List<Recipe> recipes, RecipeFilter filter) {
+        // This is where we can add local filtering logic for dietary restrictions
+        // For now, we'll implement basic vegan/vegetarian filtering based on ingredients
+        
+        List<Recipe> filteredRecipes = new ArrayList<>();
+        
+        for (Recipe recipe : recipes) {
+            if (isRecipeSuitableForFilter(recipe, filter)) {
+                filteredRecipes.add(recipe);
+            }
+        }
+        
+        return filteredRecipes;
+    }
+
+    private boolean isRecipeSuitableForFilter(Recipe recipe, RecipeFilter filter) {
+        // Add local filtering logic here
+        // For example, check ingredients for vegan/vegetarian compliance
+        
+        // For now, return true (no additional filtering)
+        // You can enhance this with ingredient analysis
+        return true;
     }
 
     private List<Recipe> convertApiRecipesToLocalRecipes(List<ApiRecipe> apiRecipes) {
@@ -553,25 +646,15 @@ public class FirebaseManager {
                 recipe.setTitle(apiRecipe.getTitle());
                 recipe.setInstructions(apiRecipe.getInstructions());
                 recipe.setImageUrl(apiRecipe.getImageUrl());
-                recipe.setCategory(apiRecipe.getDishTypes() != null && !apiRecipe.getDishTypes().isEmpty() 
-                    ? apiRecipe.getDishTypes().get(0) 
-                    : "Other");
+                recipe.setCategory(apiRecipe.getCategory() != null ? apiRecipe.getCategory() : "Other");
                 recipe.setImportedFromApi(true);
                 recipe.setFavorite(false); // Initialize as not favorited
                 recipe.setCreatedAt(System.currentTimeMillis());
 
-                List<Ingredient> ingredients = new ArrayList<>();
-                if (apiRecipe.getIngredients() != null) {
-                    for (ApiIngredient apiIngredient : apiRecipe.getIngredients()) {
-                        Ingredient ingredient = new Ingredient(
-                            apiIngredient.getName(),
-                            String.valueOf(apiIngredient.getAmount()),
-                            apiIngredient.getUnit()
-                        );
-                        ingredients.add(ingredient);
-                    }
-                }
+                // TheMealDB stores ingredients as separate fields, so we need to extract them
+                List<Ingredient> ingredients = extractIngredientsFromTheMealDB(apiRecipe);
                 recipe.setIngredients(ingredients);
+                
                 recipes.add(recipe);
                 Log.d(TAG, "Successfully converted API recipe: " + recipe.getTitle());
             } catch (Exception e) {
@@ -581,8 +664,76 @@ public class FirebaseManager {
         return recipes;
     }
 
+    private List<Ingredient> extractIngredientsFromTheMealDB(ApiRecipe apiRecipe) {
+        List<Ingredient> ingredients = new ArrayList<>();
+        
+        // Extract ingredients and measures from TheMealDB response
+        String[] ingredientFields = {
+            apiRecipe.getIngredient1(), apiRecipe.getIngredient2(), apiRecipe.getIngredient3(),
+            apiRecipe.getIngredient4(), apiRecipe.getIngredient5(), apiRecipe.getIngredient6(),
+            apiRecipe.getIngredient7(), apiRecipe.getIngredient8(), apiRecipe.getIngredient9(),
+            apiRecipe.getIngredient10(), apiRecipe.getIngredient11(), apiRecipe.getIngredient12(),
+            apiRecipe.getIngredient13(), apiRecipe.getIngredient14(), apiRecipe.getIngredient15(),
+            apiRecipe.getIngredient16(), apiRecipe.getIngredient17(), apiRecipe.getIngredient18(),
+            apiRecipe.getIngredient19(), apiRecipe.getIngredient20()
+        };
+        
+        String[] measureFields = {
+            apiRecipe.getMeasure1(), apiRecipe.getMeasure2(), apiRecipe.getMeasure3(),
+            apiRecipe.getMeasure4(), apiRecipe.getMeasure5(), apiRecipe.getMeasure6(),
+            apiRecipe.getMeasure7(), apiRecipe.getMeasure8(), apiRecipe.getMeasure9(),
+            apiRecipe.getMeasure10(), apiRecipe.getMeasure11(), apiRecipe.getMeasure12(),
+            apiRecipe.getMeasure13(), apiRecipe.getMeasure14(), apiRecipe.getMeasure15(),
+            apiRecipe.getMeasure16(), apiRecipe.getMeasure17(), apiRecipe.getMeasure18(),
+            apiRecipe.getMeasure19(), apiRecipe.getMeasure20()
+        };
+        
+        // Combine ingredients with their measures
+        for (int i = 0; i < ingredientFields.length; i++) {
+            String ingredient = ingredientFields[i];
+            String measure = measureFields[i];
+            
+            if (ingredient != null && !ingredient.trim().isEmpty()) {
+                // Clean up the measure (remove extra spaces, etc.)
+                String cleanMeasure = measure != null ? measure.trim() : "";
+                String cleanIngredient = ingredient.trim();
+                
+                // If no measure is provided, use a default
+                if (cleanMeasure.isEmpty()) {
+                    cleanMeasure = "1";
+                }
+                
+                ingredients.add(new Ingredient(cleanIngredient, cleanMeasure, ""));
+                Log.d(TAG, "Added ingredient: " + cleanIngredient + " - " + cleanMeasure);
+            }
+        }
+        
+        // If no ingredients were found, add a placeholder
+        if (ingredients.isEmpty() && apiRecipe.getTitle() != null && !apiRecipe.getTitle().isEmpty()) {
+            ingredients.add(new Ingredient("Main ingredient", "1", "portion"));
+            Log.d(TAG, "No ingredients found, added placeholder for: " + apiRecipe.getTitle());
+        }
+        
+        return ingredients;
+    }
+
     public interface OnRecipesLoadedListener {
         void onRecipesLoaded(List<Recipe> recipes);
+        void onError(String error);
+    }
+
+    public interface OnCategoriesLoadedListener {
+        void onCategoriesLoaded(List<CategoryResponse.Category> categories);
+        void onError(String error);
+    }
+
+    public interface OnAreasLoadedListener {
+        void onAreasLoaded(List<AreaResponse.Area> areas);
+        void onError(String error);
+    }
+
+    public interface OnIngredientsLoadedListener {
+        void onIngredientsLoaded(List<IngredientResponse.Ingredient> ingredients);
         void onError(String error);
     }
 
@@ -627,5 +778,60 @@ public class FirebaseManager {
                 Log.e(TAG, "Error loading recipes", e);
                 listener.onRecipesLoaded(new ArrayList<>());
             });
+    }
+
+    /**
+     * Search recipes online by filter OR query (combines both result sets, removes duplicates by title)
+     */
+    public void searchOnlineRecipesByFilterOrQuery(RecipeFilter filter, String query, OnRecipesLoadedListener listener) {
+        // If both are empty/null, just return empty
+        if ((filter == null || filter.getType() == null || filter.getValue() == null || filter.getValue().isEmpty()) && (query == null || query.isEmpty())) {
+            listener.onRecipesLoaded(new ArrayList<>());
+            return;
+        }
+        // If only filter is set
+        if (query == null || query.isEmpty()) {
+            searchOnlineRecipesWithFilter(filter, listener);
+            return;
+        }
+        // If only query is set
+        if (filter == null || filter.getType() == null || filter.getValue() == null || filter.getValue().isEmpty()) {
+            searchOnlineRecipes(query, listener);
+            return;
+        }
+        // Both filter and query are set, so fetch both and merge
+        searchOnlineRecipesWithFilter(filter, new OnRecipesLoadedListener() {
+            @Override
+            public void onRecipesLoaded(List<Recipe> filterResults) {
+                searchOnlineRecipes(query, new OnRecipesLoadedListener() {
+                    @Override
+                    public void onRecipesLoaded(List<Recipe> queryResults) {
+                        // Merge results, remove duplicates by title
+                        List<Recipe> merged = new ArrayList<>(filterResults);
+                        for (Recipe r : queryResults) {
+                            boolean exists = false;
+                            for (Recipe f : filterResults) {
+                                if (f.getTitle().equalsIgnoreCase(r.getTitle())) {
+                                    exists = true;
+                                    break;
+                                }
+                            }
+                            if (!exists) merged.add(r);
+                        }
+                        listener.onRecipesLoaded(merged);
+                    }
+                    @Override
+                    public void onError(String error) {
+                        // If query search fails, just return filter results
+                        listener.onRecipesLoaded(filterResults);
+                    }
+                });
+            }
+            @Override
+            public void onError(String error) {
+                // If filter search fails, just try query search
+                searchOnlineRecipes(query, listener);
+            }
+        });
     }
 } 

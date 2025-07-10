@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.cookbook.R;
 import com.example.cookbook.databinding.FragmentHomeBinding;
 import com.example.cookbook.model.Recipe;
+import com.example.cookbook.model.RecipeFilter;
+import com.example.cookbook.ui.dialog.RecipeFilterDialog;
 import com.example.cookbook.ui.recipe.AddRecipeActivity;
 import com.example.cookbook.util.FirebaseManager;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -23,11 +25,14 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HomeFragment extends Fragment {
+public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilterAppliedListener {
     private FragmentHomeBinding binding;
     private FirebaseManager firebaseManager;
     private RecipeAdapter recipeAdapter;
     private List<Recipe> allRecipes = new ArrayList<>();
+    // Store current filter and search query
+    private RecipeFilter currentFilter = null;
+    private String currentSearchQuery = "";
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -59,16 +64,19 @@ public class HomeFragment extends Fragment {
         binding.searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                searchRecipes(query);
+                currentSearchQuery = query;
+                searchWithFilterOrQuery();
                 return true;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
+                currentSearchQuery = newText;
                 if (newText.length() > 2) {
-                    searchRecipes(newText);
+                    searchWithFilterOrQuery();
                 } else if (newText.isEmpty()) {
-                    loadRecipes();
+                    currentSearchQuery = "";
+                    searchWithFilterOrQuery();
                 }
                 return true;
             }
@@ -147,6 +155,9 @@ public class HomeFragment extends Fragment {
         // Add click listener for the Create Recipe button in empty state
         binding.btnCreateRecipe.setOnClickListener(v -> 
             startActivity(new Intent(requireContext(), AddRecipeActivity.class)));
+
+        // Add filter button click listener
+        binding.btnFilter.setOnClickListener(v -> showFilterDialog());
     }
 
     private void loadRecipes() {
@@ -212,6 +223,50 @@ public class HomeFragment extends Fragment {
         }
         binding.emptyStateLayout.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         binding.recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
+    }
+
+    private void showFilterDialog() {
+        RecipeFilterDialog dialog = RecipeFilterDialog.newInstance();
+        dialog.show(getChildFragmentManager(), "filter_dialog");
+    }
+
+    @Override
+    public void onFilterApplied(RecipeFilter filter) {
+        binding.progressBar.setVisibility(View.VISIBLE);
+        currentFilter = filter;
+        searchWithFilterOrQuery();
+    }
+
+    private void searchWithFilterOrQuery() {
+        binding.progressBar.setVisibility(View.VISIBLE);
+        // If both filter and query are empty, load all recipes
+        if ((currentFilter == null || currentFilter.getValue() == null || currentFilter.getValue().isEmpty()) && (currentSearchQuery == null || currentSearchQuery.isEmpty())) {
+            loadRecipes();
+            return;
+        }
+        // Use the new FirebaseManager method
+        firebaseManager.searchOnlineRecipesByFilterOrQuery(currentFilter, currentSearchQuery, new FirebaseManager.OnRecipesLoadedListener() {
+            @Override
+            public void onRecipesLoaded(List<Recipe> recipes) {
+                updateRecipeList(recipes);
+                binding.progressBar.setVisibility(View.GONE);
+            }
+            @Override
+            public void onError(String error) {
+                binding.progressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(), "Search failed: " + error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private String getFilterTypeName(RecipeFilter.FilterType type) {
+        switch (type) {
+            case CATEGORY: return "Category";
+            case AREA: return "Cuisine";
+            case INGREDIENT: return "Ingredient";
+            case SEARCH: return "Search";
+            default: return "Filter";
+        }
     }
 
     @Override
