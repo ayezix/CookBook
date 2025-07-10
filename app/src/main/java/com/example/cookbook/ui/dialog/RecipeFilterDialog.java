@@ -43,8 +43,17 @@ public class RecipeFilterDialog extends DialogFragment {
         void onFilterApplied(RecipeFilter filter);
     }
     
-    public static RecipeFilterDialog newInstance() {
-        return new RecipeFilterDialog();
+    public static RecipeFilterDialog newInstance(
+            ArrayList<CategoryResponse.Category> categories,
+            ArrayList<AreaResponse.Area> areas,
+            ArrayList<IngredientResponse.Ingredient> ingredients) {
+        RecipeFilterDialog dialog = new RecipeFilterDialog();
+        Bundle args = new Bundle();
+        args.putSerializable("categories", categories);
+        args.putSerializable("areas", areas);
+        args.putSerializable("ingredients", ingredients);
+        dialog.setArguments(args);
+        return dialog;
     }
     
     @Override
@@ -59,14 +68,41 @@ public class RecipeFilterDialog extends DialogFragment {
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         firebaseManager = FirebaseManager.getInstance();
-        
+
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
         binding = DialogRecipeFilterBinding.inflate(inflater);
-        
+
+        // Try to get filter options from arguments
+        Bundle args = getArguments();
+        if (args != null) {
+            ArrayList<CategoryResponse.Category> argCategories = (ArrayList<CategoryResponse.Category>) args.getSerializable("categories");
+            ArrayList<AreaResponse.Area> argAreas = (ArrayList<AreaResponse.Area>) args.getSerializable("areas");
+            ArrayList<IngredientResponse.Ingredient> argIngredients = (ArrayList<IngredientResponse.Ingredient>) args.getSerializable("ingredients");
+            if (argCategories != null && !argCategories.isEmpty()) {
+                categories = argCategories;
+                categoriesLoaded = true;
+            }
+            if (argAreas != null && !argAreas.isEmpty()) {
+                areas = argAreas;
+                areasLoaded = true;
+            }
+            if (argIngredients != null && !argIngredients.isEmpty()) {
+                ingredients = argIngredients;
+                ingredientsLoaded = true;
+            }
+        }
+
         setupListeners();
-        loadFilterOptions();
-        
+        if (categoriesLoaded && areasLoaded && ingredientsLoaded) {
+            setupCategorySpinner();
+            setupAreaSpinner();
+            setupIngredientSpinner();
+            checkCanEnableApplyButton();
+        } else {
+            loadFilterOptions();
+        }
+
         builder.setView(binding.getRoot());
         return builder.create();
     }
@@ -199,23 +235,19 @@ public class RecipeFilterDialog extends DialogFragment {
             binding.btnApply.setEnabled(false);
             return;
         }
-        
+
         int checkedId = binding.radioGroupFilterType.getCheckedRadioButtonId();
+        boolean enable = false;
         if (checkedId == R.id.radioCategory) {
-            // Enable if spinner has items (first item will be auto-selected)
-            binding.btnApply.setEnabled(binding.spinnerCategory.getCount() > 0);
+            enable = binding.spinnerCategory.getCount() > 0 && binding.spinnerCategory.getSelectedItem() != null;
         } else if (checkedId == R.id.radioArea) {
-            // Enable if spinner has items (first item will be auto-selected)
-            binding.btnApply.setEnabled(binding.spinnerArea.getCount() > 0);
+            enable = binding.spinnerArea.getCount() > 0 && binding.spinnerArea.getSelectedItem() != null;
         } else if (checkedId == R.id.radioIngredient) {
-            // Enable if spinner has items (first item will be auto-selected)
-            binding.btnApply.setEnabled(binding.spinnerIngredient.getCount() > 0);
+            enable = binding.spinnerIngredient.getCount() > 0 && binding.spinnerIngredient.getSelectedItem() != null;
         } else if (checkedId == R.id.radioDietary) {
-            // Enable if a dietary option is selected
-            binding.btnApply.setEnabled(binding.radioGroupDietary.getCheckedRadioButtonId() != -1);
-        } else {
-            binding.btnApply.setEnabled(false);
+            enable = binding.radioGroupDietary.getCheckedRadioButtonId() != -1;
         }
+        binding.btnApply.setEnabled(enable);
     }
     
     private void setupCategorySpinner() {
@@ -236,6 +268,18 @@ public class RecipeFilterDialog extends DialogFragment {
         if (categoryNames.size() > 0) {
             binding.spinnerCategory.setSelection(0);
         }
+
+        // Add listener to enable Apply button on selection
+        binding.spinnerCategory.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                checkCanEnableApplyButton();
+            }
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                checkCanEnableApplyButton();
+            }
+        });
     }
     
     private void setupAreaSpinner() {
@@ -256,6 +300,18 @@ public class RecipeFilterDialog extends DialogFragment {
         if (areaNames.size() > 0) {
             binding.spinnerArea.setSelection(0);
         }
+
+        // Add listener to enable Apply button on selection
+        binding.spinnerArea.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                checkCanEnableApplyButton();
+            }
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                checkCanEnableApplyButton();
+            }
+        });
     }
     
     private void setupIngredientSpinner() {
@@ -276,38 +332,60 @@ public class RecipeFilterDialog extends DialogFragment {
         if (ingredientNames.size() > 0) {
             binding.spinnerIngredient.setSelection(0);
         }
+
+        // Add listener to enable Apply button on selection
+        binding.spinnerIngredient.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                checkCanEnableApplyButton();
+            }
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                checkCanEnableApplyButton();
+            }
+        });
     }
     
     private void applyFilter() {
         RecipeFilter filter = null;
         int checkedId = binding.radioGroupFilterType.getCheckedRadioButtonId();
-        
+        String logSelection = "";
+
         if (checkedId == R.id.radioCategory) {
-            if (binding.spinnerCategory.getCount() > 0) {
+            if (binding.spinnerCategory.getCount() > 0 && binding.spinnerCategory.getSelectedItem() != null) {
                 String category = binding.spinnerCategory.getSelectedItem().toString();
                 filter = RecipeFilter.byCategory(category);
+                logSelection = "Category: " + category;
             }
         } else if (checkedId == R.id.radioArea) {
-            if (binding.spinnerArea.getCount() > 0) {
+            if (binding.spinnerArea.getCount() > 0 && binding.spinnerArea.getSelectedItem() != null) {
                 String area = binding.spinnerArea.getSelectedItem().toString();
                 filter = RecipeFilter.byArea(area);
+                logSelection = "Area: " + area;
             }
         } else if (checkedId == R.id.radioIngredient) {
-            if (binding.spinnerIngredient.getCount() > 0) {
+            if (binding.spinnerIngredient.getCount() > 0 && binding.spinnerIngredient.getSelectedItem() != null) {
                 String ingredient = binding.spinnerIngredient.getSelectedItem().toString();
                 filter = RecipeFilter.byIngredient(ingredient);
+                logSelection = "Ingredient: " + ingredient;
             }
         } else if (checkedId == R.id.radioDietary) {
             int dietaryCheckedId = binding.radioGroupDietary.getCheckedRadioButtonId();
             if (dietaryCheckedId == R.id.radioVegan) {
                 filter = RecipeFilter.veganOnly();
+                logSelection = "Dietary: Vegan";
             } else if (dietaryCheckedId == R.id.radioVegetarian) {
                 filter = RecipeFilter.vegetarianOnly();
+                logSelection = "Dietary: Vegetarian";
             } else if (dietaryCheckedId == R.id.radioGlutenFree) {
                 filter = RecipeFilter.glutenFreeOnly();
+                logSelection = "Dietary: Gluten Free";
             }
         }
-        
+
+        android.util.Log.d("RecipeFilterDialog", "User selection: " + logSelection);
+        System.out.println("User selection: " + logSelection);
+
         if (filter != null && listener != null) {
             listener.onFilterApplied(filter);
             dismiss();

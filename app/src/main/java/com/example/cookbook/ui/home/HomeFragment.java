@@ -25,6 +25,10 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.example.cookbook.api.model.CategoryResponse;
+import com.example.cookbook.api.model.AreaResponse;
+import com.example.cookbook.api.model.IngredientResponse;
+
 public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilterAppliedListener {
     private FragmentHomeBinding binding;
     private FirebaseManager firebaseManager;
@@ -33,6 +37,12 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
     // Store current filter and search query
     private RecipeFilter currentFilter = null;
     private String currentSearchQuery = "";
+
+    // Add fields to store filter options
+    private ArrayList<CategoryResponse.Category> filterCategories = new ArrayList<>();
+    private ArrayList<AreaResponse.Area> filterAreas = new ArrayList<>();
+    private ArrayList<IngredientResponse.Ingredient> filterIngredients = new ArrayList<>();
+    private boolean filterOptionsLoaded = false;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -157,7 +167,63 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
             startActivity(new Intent(requireContext(), AddRecipeActivity.class)));
 
         // Add filter button click listener
-        binding.btnFilter.setOnClickListener(v -> showFilterDialog());
+        binding.btnFilter.setOnClickListener(v -> showFilterDialogWithOptions());
+    }
+
+    // New method to load filter options and show dialog
+    private void showFilterDialogWithOptions() {
+        binding.progressBar.setVisibility(View.VISIBLE);
+        filterOptionsLoaded = false;
+        filterCategories.clear();
+        filterAreas.clear();
+        filterIngredients.clear();
+
+        firebaseManager.getCategories(new FirebaseManager.OnCategoriesLoadedListener() {
+            @Override
+            public void onCategoriesLoaded(List<CategoryResponse.Category> categories) {
+                filterCategories = new ArrayList<>(categories);
+                checkAndShowDialog();
+            }
+            @Override
+            public void onError(String error) {
+                Toast.makeText(requireContext(), "Failed to load categories", Toast.LENGTH_SHORT).show();
+                binding.progressBar.setVisibility(View.GONE);
+            }
+        });
+        firebaseManager.getAreas(new FirebaseManager.OnAreasLoadedListener() {
+            @Override
+            public void onAreasLoaded(List<AreaResponse.Area> areas) {
+                filterAreas = new ArrayList<>(areas);
+                checkAndShowDialog();
+            }
+            @Override
+            public void onError(String error) {
+                Toast.makeText(requireContext(), "Failed to load areas", Toast.LENGTH_SHORT).show();
+                binding.progressBar.setVisibility(View.GONE);
+            }
+        });
+        firebaseManager.getIngredients(new FirebaseManager.OnIngredientsLoadedListener() {
+            @Override
+            public void onIngredientsLoaded(List<IngredientResponse.Ingredient> ingredients) {
+                filterIngredients = new ArrayList<>(ingredients);
+                checkAndShowDialog();
+            }
+            @Override
+            public void onError(String error) {
+                Toast.makeText(requireContext(), "Failed to load ingredients", Toast.LENGTH_SHORT).show();
+                binding.progressBar.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    // Helper to show dialog only when all options are loaded
+    private void checkAndShowDialog() {
+        if (!filterCategories.isEmpty() && !filterAreas.isEmpty() && !filterIngredients.isEmpty() && !filterOptionsLoaded) {
+            filterOptionsLoaded = true;
+            binding.progressBar.setVisibility(View.GONE);
+            RecipeFilterDialog dialog = RecipeFilterDialog.newInstance(filterCategories, filterAreas, filterIngredients);
+            dialog.show(getChildFragmentManager(), "filter_dialog");
+        }
     }
 
     private void loadRecipes() {
@@ -223,11 +289,6 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         }
         binding.emptyStateLayout.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         binding.recyclerView.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-    }
-
-    private void showFilterDialog() {
-        RecipeFilterDialog dialog = RecipeFilterDialog.newInstance();
-        dialog.show(getChildFragmentManager(), "filter_dialog");
     }
 
     @Override

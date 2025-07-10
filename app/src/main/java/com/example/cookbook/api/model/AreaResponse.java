@@ -11,7 +11,7 @@ public class AreaResponse {
         return areas;
     }
 
-    public static class Area {
+    public static class Area implements java.io.Serializable {
         @SerializedName("strArea")
         private String name;
 

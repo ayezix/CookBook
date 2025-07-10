@@ -11,7 +11,7 @@ public class IngredientResponse {
         return ingredients;
     }
 
-    public static class Ingredient {
+    public static class Ingredient implements java.io.Serializable {
         @SerializedName("idIngredient")
         private String id;
 

@@ -505,22 +505,32 @@ public class FirebaseManager {
 
     public void searchOnlineRecipesWithFilter(RecipeFilter filter, OnRecipesLoadedListener listener) {
         Call<ApiRecipeResponse> call;
-        
+        String logMsg = "";
+        String endpoint = "filter.php";
+        String param = "";
         switch (filter.getType()) {
             case CATEGORY:
+                param = "c=" + filter.getValue();
                 call = ApiClient.getRecipeService().filterByCategory(filter.getValue());
                 break;
             case AREA:
+                param = "a=" + filter.getValue();
                 call = ApiClient.getRecipeService().filterByArea(filter.getValue());
                 break;
             case INGREDIENT:
+                param = "i=" + filter.getValue();
                 call = ApiClient.getRecipeService().filterByIngredient(filter.getValue());
                 break;
             case SEARCH:
             default:
+                endpoint = "search.php";
+                param = "s=" + filter.getValue();
                 call = ApiClient.getRecipeService().searchRecipes(filter.getValue());
                 break;
         }
+        logMsg = "[TheMealDB API] Request: https://www.themealdb.com/api/json/v1/1/" + endpoint + "?" + param;
+        android.util.Log.d(TAG, logMsg);
+        System.out.println(logMsg);
 
         call.enqueue(new Callback<ApiRecipeResponse>() {
             @Override
@@ -799,33 +809,22 @@ public class FirebaseManager {
             searchOnlineRecipes(query, listener);
             return;
         }
-        // Both filter and query are set, so fetch both and merge
+        // Both filter and query are set, so fetch by filter, then locally filter by query
         searchOnlineRecipesWithFilter(filter, new OnRecipesLoadedListener() {
             @Override
             public void onRecipesLoaded(List<Recipe> filterResults) {
-                searchOnlineRecipes(query, new OnRecipesLoadedListener() {
-                    @Override
-                    public void onRecipesLoaded(List<Recipe> queryResults) {
-                        // Merge results, remove duplicates by title
-                        List<Recipe> merged = new ArrayList<>(filterResults);
-                        for (Recipe r : queryResults) {
-                            boolean exists = false;
-                            for (Recipe f : filterResults) {
-                                if (f.getTitle().equalsIgnoreCase(r.getTitle())) {
-                                    exists = true;
-                                    break;
-                                }
-                            }
-                            if (!exists) merged.add(r);
-                        }
-                        listener.onRecipesLoaded(merged);
+                if (filterResults == null) {
+                    listener.onRecipesLoaded(new ArrayList<>());
+                    return;
+                }
+                String lowerQuery = query.toLowerCase();
+                List<Recipe> filtered = new ArrayList<>();
+                for (Recipe r : filterResults) {
+                    if (r.getTitle() != null && r.getTitle().toLowerCase().contains(lowerQuery)) {
+                        filtered.add(r);
                     }
-                    @Override
-                    public void onError(String error) {
-                        // If query search fails, just return filter results
-                        listener.onRecipesLoaded(filterResults);
-                    }
-                });
+                }
+                listener.onRecipesLoaded(filtered);
             }
             @Override
             public void onError(String error) {

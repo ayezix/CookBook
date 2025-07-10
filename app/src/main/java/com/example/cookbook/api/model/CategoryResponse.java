@@ -11,7 +11,7 @@ public class CategoryResponse {
         return categories;
     }
 
-    public static class Category {
+    public static class Category implements java.io.Serializable {
         @SerializedName("idCategory")
         private String id;
 
