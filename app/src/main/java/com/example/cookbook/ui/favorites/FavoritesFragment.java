@@ -40,6 +40,12 @@ public class FavoritesFragment extends Fragment {
         loadFavoriteRecipes();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadFavoriteRecipes();
+    }
+
     private void setupRecyclerView() {
         recipeAdapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
             // TODO: Handle recipe click - open recipe details

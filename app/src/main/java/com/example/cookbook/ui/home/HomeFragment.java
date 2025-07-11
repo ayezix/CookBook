@@ -58,13 +58,15 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         setupRecyclerView();
         setupSearchView();
         setupClickListeners();
-        loadRecipes();
+        // Do not load recipes by default
+        updateRecipeList(new ArrayList<>()); // Show empty state
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        loadRecipes();
+        // Do not load recipes by default
+        updateRecipeList(new ArrayList<>()); // Show empty state
     }
 
     private void setupRecyclerView() {
