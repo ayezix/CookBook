@@ -59,7 +59,10 @@ public class RecipeFilterDialog extends DialogFragment {
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
-        if (context instanceof OnFilterAppliedListener) {
+        // Try to set listener from parent fragment first (for getChildFragmentManager usage)
+        if (getParentFragment() instanceof OnFilterAppliedListener) {
+            listener = (OnFilterAppliedListener) getParentFragment();
+        } else if (context instanceof OnFilterAppliedListener) {
             listener = (OnFilterAppliedListener) context;
         }
     }
@@ -385,6 +388,11 @@ public class RecipeFilterDialog extends DialogFragment {
 
         android.util.Log.d("RecipeFilterDialog", "User selection: " + logSelection);
         System.out.println("User selection: " + logSelection);
+        // Log filter and listener values
+        android.util.Log.d("RecipeFilterDialog", "filter=" + filter);
+        android.util.Log.d("RecipeFilterDialog", "listener=" + listener);
+        System.out.println("filter=" + filter);
+        System.out.println("listener=" + listener);
 
         if (filter != null && listener != null) {
             listener.onFilterApplied(filter);
