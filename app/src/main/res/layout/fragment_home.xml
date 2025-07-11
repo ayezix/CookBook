@@ -63,36 +63,24 @@
             app:tint="?android:textColorSecondary" />
 
         <TextView
+            android:id="@+id/tvWelcome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Loading sample recipes..."
-            android:textAppearance="?attr/textAppearanceHeadline6" />
+            android:text="Welcome to the CookBook!"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_marginTop="24dp"
+            android:textColor="@android:color/black" />
 
         <TextView
+            android:id="@+id/tvCreateHint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:text="To create your own recipe press the + button, or search online."
+            android:textSize="14sp"
             android:layout_marginTop="8dp"
-            android:text="Please wait while we prepare your recipe collection"
-            android:textAppearance="?attr/textAppearanceBody2"
-            android:textColor="?android:textColorSecondary"
-            android:gravity="center" />
+            android:textColor="@android:color/darker_gray" />
 
-        <Button
-            android:id="@+id/btnCreateRecipe"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Create Your Own Recipe"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
-
-        <Button
-            android:id="@+id/btnAddSampleRecipes"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Add Sample Recipes"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
     </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

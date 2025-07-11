@@ -87,9 +87,38 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
 
             // Set click listeners
             binding.getRoot().setOnClickListener(v -> {
-                Intent intent = new Intent(binding.getRoot().getContext(), RecipeDetailActivity.class);
-                intent.putExtra("recipe", recipe);
-                binding.getRoot().getContext().startActivity(intent);
+                // If the recipe is imported from API and missing details, fetch full details
+                if (recipe.isImportedFromApi() && (recipe.getInstructions() == null || recipe.getInstructions().length() < 10 || recipe.getIngredients() == null || recipe.getIngredients().size() <= 1)) {
+                    if (recipe.getId() == null || recipe.getId().isEmpty()) {
+                        Toast.makeText(binding.getRoot().getContext(), "Recipe ID missing, cannot load details", Toast.LENGTH_SHORT).show();
+                        android.util.Log.e("RecipeAdapter", "Recipe ID is null or empty for: " + recipe.getTitle());
+                        return;
+                    }
+                    Toast.makeText(binding.getRoot().getContext(), "Loading full recipe details...", Toast.LENGTH_SHORT).show();
+                    android.util.Log.d("RecipeAdapter", "Fetching full recipe details for ID: " + recipe.getId());
+                    firebaseManager.fetchFullRecipeById(recipe.getId(), new FirebaseManager.OnRecipesLoadedListener() {
+                        @Override
+                        public void onRecipesLoaded(List<Recipe> recipes) {
+                            if (recipes != null && !recipes.isEmpty()) {
+                                Intent intent = new Intent(binding.getRoot().getContext(), RecipeDetailActivity.class);
+                                intent.putExtra("recipe", recipes.get(0));
+                                binding.getRoot().getContext().startActivity(intent);
+                            } else {
+                                Toast.makeText(binding.getRoot().getContext(), "Recipe details not found", Toast.LENGTH_SHORT).show();
+                                android.util.Log.e("RecipeAdapter", "No recipe details found for ID: " + recipe.getId());
+                            }
+                        }
+                        @Override
+                        public void onError(String error) {
+                            Toast.makeText(binding.getRoot().getContext(), "Failed to load recipe details", Toast.LENGTH_SHORT).show();
+                            android.util.Log.e("RecipeAdapter", "Failed to load recipe details for ID: " + recipe.getId() + ", error: " + error);
+                        }
+                    });
+                } else {
+                    Intent intent = new Intent(binding.getRoot().getContext(), RecipeDetailActivity.class);
+                    intent.putExtra("recipe", recipe);
+                    binding.getRoot().getContext().startActivity(intent);
+                }
             });
             
             binding.ivFavorite.setOnClickListener(v -> {

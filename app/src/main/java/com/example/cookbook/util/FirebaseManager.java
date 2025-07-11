@@ -395,110 +395,6 @@ public class FirebaseManager {
         }
     }
 
-    public Task<Void> addSampleRecipes() {
-        List<Recipe> sampleRecipes = new ArrayList<>();
-        
-        // Recipe 1: Classic Margherita Pizza
-        Recipe pizza = new Recipe();
-        pizza.setTitle("Classic Margherita Pizza");
-        pizza.setCategory("Dinner");
-        pizza.setInstructions("1. Preheat oven to 450°F (230°C)\n" +
-                "2. Roll out pizza dough on a floured surface\n" +
-                "3. Spread tomato sauce evenly\n" +
-                "4. Add fresh mozzarella slices\n" +
-                "5. Add fresh basil leaves\n" +
-                "6. Drizzle with olive oil\n" +
-                "7. Bake for 12-15 minutes until crust is golden");
-        pizza.setImageUrl("https://images.unsplash.com/photo-1604382354936-07c5d9983bd3");
-        List<Ingredient> pizzaIngredients = new ArrayList<>();
-        pizzaIngredients.add(new Ingredient("Pizza dough", "1", "ball"));
-        pizzaIngredients.add(new Ingredient("Tomato sauce", "1/2", "cup"));
-        pizzaIngredients.add(new Ingredient("Fresh mozzarella", "8", "oz"));
-        pizzaIngredients.add(new Ingredient("Fresh basil", "1/4", "cup"));
-        pizzaIngredients.add(new Ingredient("Olive oil", "2", "tbsp"));
-        pizza.setIngredients(pizzaIngredients);
-        sampleRecipes.add(pizza);
-
-        // Recipe 2: Chocolate Chip Cookies
-        Recipe cookies = new Recipe();
-        cookies.setTitle("Classic Chocolate Chip Cookies");
-        cookies.setCategory("Desserts");
-        cookies.setInstructions("1. Preheat oven to 350°F (175°C)\n" +
-                "2. Cream butter and sugars until fluffy\n" +
-                "3. Add eggs and vanilla, mix well\n" +
-                "4. Combine flour, baking soda, and salt\n" +
-                "5. Mix dry ingredients into wet ingredients\n" +
-                "6. Fold in chocolate chips\n" +
-                "7. Drop rounded tablespoons onto baking sheet\n" +
-                "8. Bake for 10-12 minutes until golden");
-        cookies.setImageUrl("https://images.unsplash.com/photo-1499636136210-6f4ee915583e");
-        List<Ingredient> cookieIngredients = new ArrayList<>();
-        cookieIngredients.add(new Ingredient("Butter", "1", "cup"));
-        cookieIngredients.add(new Ingredient("White sugar", "3/4", "cup"));
-        cookieIngredients.add(new Ingredient("Brown sugar", "3/4", "cup"));
-        cookieIngredients.add(new Ingredient("Eggs", "2", "large"));
-        cookieIngredients.add(new Ingredient("Vanilla extract", "1", "tsp"));
-        cookieIngredients.add(new Ingredient("Flour", "2 1/4", "cups"));
-        cookieIngredients.add(new Ingredient("Baking soda", "1", "tsp"));
-        cookieIngredients.add(new Ingredient("Chocolate chips", "2", "cups"));
-        cookies.setIngredients(cookieIngredients);
-        sampleRecipes.add(cookies);
-
-        // Recipe 3: Avocado Toast
-        Recipe avocadoToast = new Recipe();
-        avocadoToast.setTitle("Avocado Toast with Poached Egg");
-        avocadoToast.setCategory("Breakfast");
-        avocadoToast.setInstructions("1. Toast bread until golden\n" +
-                "2. Mash avocado with salt and pepper\n" +
-                "3. Poach egg in simmering water for 3-4 minutes\n" +
-                "4. Spread avocado on toast\n" +
-                "5. Top with poached egg\n" +
-                "6. Sprinkle with red pepper flakes");
-        avocadoToast.setImageUrl("https://images.unsplash.com/photo-1588137378633-dea1336ce1e2");
-        List<Ingredient> toastIngredients = new ArrayList<>();
-        toastIngredients.add(new Ingredient("Sourdough bread", "2", "slices"));
-        toastIngredients.add(new Ingredient("Avocado", "1", "medium"));
-        toastIngredients.add(new Ingredient("Eggs", "2", "large"));
-        toastIngredients.add(new Ingredient("Salt", "1/4", "tsp"));
-        toastIngredients.add(new Ingredient("Black pepper", "1/4", "tsp"));
-        toastIngredients.add(new Ingredient("Red pepper flakes", "1/4", "tsp"));
-        avocadoToast.setIngredients(toastIngredients);
-        sampleRecipes.add(avocadoToast);
-
-        // Recipe 4: Greek Salad
-        Recipe greekSalad = new Recipe();
-        greekSalad.setTitle("Classic Greek Salad");
-        greekSalad.setCategory("Lunch");
-        greekSalad.setInstructions("1. Combine chopped vegetables in a large bowl\n" +
-                "2. Add olives and feta cheese\n" +
-                "3. Whisk together olive oil, lemon juice, and oregano\n" +
-                "4. Pour dressing over salad\n" +
-                "5. Toss gently to combine\n" +
-                "6. Season with salt and pepper");
-        greekSalad.setImageUrl("https://images.unsplash.com/photo-1546069901-ba9599a7e63c");
-        List<Ingredient> saladIngredients = new ArrayList<>();
-        saladIngredients.add(new Ingredient("Cucumber", "1", "large"));
-        saladIngredients.add(new Ingredient("Tomatoes", "4", "medium"));
-        saladIngredients.add(new Ingredient("Red onion", "1", "small"));
-        saladIngredients.add(new Ingredient("Bell pepper", "1", "medium"));
-        saladIngredients.add(new Ingredient("Feta cheese", "8", "oz"));
-        saladIngredients.add(new Ingredient("Kalamata olives", "1/2", "cup"));
-        saladIngredients.add(new Ingredient("Olive oil", "1/4", "cup"));
-        saladIngredients.add(new Ingredient("Lemon juice", "2", "tbsp"));
-        saladIngredients.add(new Ingredient("Dried oregano", "1", "tsp"));
-        greekSalad.setIngredients(saladIngredients);
-        sampleRecipes.add(greekSalad);
-
-        // Add all recipes to Firestore
-        List<Task<DocumentReference>> tasks = new ArrayList<>();
-        for (Recipe recipe : sampleRecipes) {
-            recipe.setUserId(getCurrentUserId());
-            tasks.add(addRecipe(recipe));
-        }
-
-        return Tasks.whenAll(tasks).continueWith(task -> null);
-    }
-
     public void searchOnlineRecipes(String query, OnRecipesLoadedListener listener) {
         searchOnlineRecipesWithFilter(RecipeFilter.bySearch(query), listener);
     }
@@ -653,6 +549,7 @@ public class FirebaseManager {
         for (ApiRecipe apiRecipe : apiRecipes) {
             try {
                 Recipe recipe = new Recipe();
+                recipe.setId(apiRecipe.getId()); // <-- Set the ID from idMeal
                 recipe.setTitle(apiRecipe.getTitle());
                 recipe.setInstructions(apiRecipe.getInstructions());
                 recipe.setImageUrl(apiRecipe.getImageUrl());
@@ -666,7 +563,7 @@ public class FirebaseManager {
                 recipe.setIngredients(ingredients);
                 
                 recipes.add(recipe);
-                Log.d(TAG, "Successfully converted API recipe: " + recipe.getTitle());
+                Log.d(TAG, "Successfully converted API recipe: " + recipe.getTitle() + ", id: " + recipe.getId());
             } catch (Exception e) {
                 Log.e(TAG, "Error converting API recipe: " + apiRecipe.getTitle(), e);
             }
@@ -747,25 +644,6 @@ public class FirebaseManager {
         void onError(String error);
     }
 
-    public Task<Void> addSampleRecipesIfNeeded() {
-        String userId = getCurrentUserId();
-        if (userId == null) return Tasks.forException(new Exception("User not logged in"));
-        return db.collection(USERS_COLLECTION).document(userId).get().continueWithTask(task -> {
-            if (!task.isSuccessful() || !task.getResult().exists()) {
-                return Tasks.forException(new Exception("User not found"));
-            }
-            Boolean alreadyAdded = task.getResult().getBoolean("sampleRecipesAdded");
-            if (alreadyAdded != null && alreadyAdded) {
-                return Tasks.forResult(null);
-            }
-            // Add sample recipes
-            return addSampleRecipes().addOnSuccessListener(aVoid -> {
-                db.collection(USERS_COLLECTION).document(userId)
-                  .update("sampleRecipesAdded", true);
-            });
-        });
-    }
-
     public void loadRecipes(OnRecipesLoadedListener listener) {
         if (listener == null) {
             return;
@@ -830,6 +708,25 @@ public class FirebaseManager {
             public void onError(String error) {
                 // If filter search fails, just try query search
                 searchOnlineRecipes(query, listener);
+            }
+        });
+    }
+
+    // Fetch full recipe details from TheMealDB by ID
+    public void fetchFullRecipeById(String id, OnRecipesLoadedListener listener) {
+        ApiClient.getRecipeService().getRecipeInformation(id).enqueue(new retrofit2.Callback<ApiRecipeResponse>() {
+            @Override
+            public void onResponse(Call<ApiRecipeResponse> call, Response<ApiRecipeResponse> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResults() != null && !response.body().getResults().isEmpty()) {
+                    List<Recipe> recipes = convertApiRecipesToLocalRecipes(response.body().getResults());
+                    listener.onRecipesLoaded(recipes);
+                } else {
+                    listener.onError("No recipe details found");
+                }
+            }
+            @Override
+            public void onFailure(Call<ApiRecipeResponse> call, Throwable t) {
+                listener.onError(t.getMessage());
             }
         });
     }

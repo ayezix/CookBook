@@ -61,6 +61,12 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         loadRecipes();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadRecipes();
+    }
+
     private void setupRecyclerView() {
         recipeAdapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
             // No-op: handled in RecipeAdapter now
@@ -139,32 +145,30 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         if (binding == null) {
             return;
         }
-        if (recipeAdapter != null) {
-            recipeAdapter.updateRecipes(recipes);
+        // Filter out null or invalid recipes
+        List<Recipe> validRecipes = new ArrayList<>();
+        for (Recipe recipe : recipes) {
+            if (recipe != null && recipe.getTitle() != null && !recipe.getTitle().trim().isEmpty()
+                    && recipe.getIngredients() != null && !recipe.getIngredients().isEmpty()) {
+                validRecipes.add(recipe);
+            }
         }
-        updateEmptyState(recipes.isEmpty());
+        if (recipeAdapter != null) {
+            recipeAdapter.updateRecipes(validRecipes);
+        }
+        updateEmptyState(validRecipes.isEmpty());
     }
 
     private void setupClickListeners() {
         binding.fabAddRecipe.setOnClickListener(v -> 
             startActivity(new Intent(requireContext(), AddRecipeActivity.class)));
             
-        binding.btnAddSampleRecipes.setOnClickListener(v -> {
-            binding.progressBar.setVisibility(View.VISIBLE);
-            firebaseManager.addSampleRecipes()
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(requireContext(), "Sample recipes added successfully", Toast.LENGTH_SHORT).show();
-                    loadRecipes();
-                })
-                .addOnFailureListener(e -> {
-                    binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), "Failed to add sample recipes", Toast.LENGTH_SHORT).show();
-                });
-        });
-
-        // Add click listener for the Create Recipe button in empty state
-        binding.btnCreateRecipe.setOnClickListener(v -> 
-            startActivity(new Intent(requireContext(), AddRecipeActivity.class)));
+        // Remove Add Sample Recipes button and related click listener
+        // Remove any Toasts or messages about sample recipes
+        // Remove any code that calls addSampleRecipes or addSampleRecipesIfNeeded
+        // Remove logic that adds sample recipes if the user's recipe list is empty
+        // Remove references to btnAddSampleRecipes in setupClickListeners and layout
+        // Remove any logic that mentions sample recipes in loadRecipes()
 
         // Add filter button click listener
         binding.btnFilter.setOnClickListener(v -> showFilterDialogWithOptions());
@@ -240,40 +244,12 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
                 }
                 
                 // If user has no recipes, add sample recipes only if not already added
-                if (allRecipes.isEmpty()) {
-                    firebaseManager.addSampleRecipesIfNeeded()
-                        .addOnSuccessListener(aVoid -> {
-                            // Reload recipes after adding samples (if needed)
-                            firebaseManager.getUserRecipes()
-                                .addOnSuccessListener(newDocs -> {
-                                    allRecipes.clear();
-                                    for (QueryDocumentSnapshot doc : newDocs) {
-                                        Recipe recipe = doc.toObject(Recipe.class);
-                                        recipe.setId(doc.getId());
-                                        allRecipes.add(recipe);
-                                    }
-                                    recipeAdapter.updateRecipes(allRecipes);
-                                    updateEmptyState(allRecipes.isEmpty());
-                                    binding.progressBar.setVisibility(View.GONE);
-                                })
-                                .addOnFailureListener(e -> {
-                                    android.util.Log.e("HomeFragment", "Failed to load recipes after adding samples", e);
-                                    Toast.makeText(requireContext(), "Failed to load recipes", Toast.LENGTH_SHORT).show();
-                                    binding.progressBar.setVisibility(View.GONE);
-                                    updateEmptyState(true);
-                                });
-                        })
-                        .addOnFailureListener(e -> {
-                            android.util.Log.e("HomeFragment", "Failed to add sample recipes", e);
-                            Toast.makeText(requireContext(), "Failed to add sample recipes", Toast.LENGTH_SHORT).show();
-                            binding.progressBar.setVisibility(View.GONE);
-                            updateEmptyState(true);
-                        });
-                } else {
-                    recipeAdapter.updateRecipes(allRecipes);
-                    updateEmptyState(false);
-                    binding.progressBar.setVisibility(View.GONE);
-                }
+                // Remove any logic that adds sample recipes if the user's recipe list is empty
+                // Remove references to btnAddSampleRecipes in setupClickListeners and layout
+                // Remove any logic that mentions sample recipes in loadRecipes()
+                recipeAdapter.updateRecipes(allRecipes);
+                updateEmptyState(allRecipes.isEmpty());
+                binding.progressBar.setVisibility(View.GONE);
             })
             .addOnFailureListener(e -> {
                 android.util.Log.e("HomeFragment", "Failed to load recipes", e);
