@@ -58,20 +58,25 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         setupRecyclerView();
         setupSearchView();
         setupClickListeners();
-        // Do not load recipes by default
-        updateRecipeList(new ArrayList<>()); // Show empty state
+        // Show only user recipes by default
+        updateRecipeList(allRecipes);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        // Do not load recipes by default
-        updateRecipeList(new ArrayList<>()); // Show empty state
+        // Show only user recipes by default
+        updateRecipeList(allRecipes);
     }
 
     private void setupRecyclerView() {
         recipeAdapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
             // No-op: handled in RecipeAdapter now
+        }, new RecipeAdapter.OnFavoriteChangedListener() {
+            @Override
+            public void onFavoriteChanged() {
+                loadRecipes(); // Reload user recipes from Firebase
+            }
         });
         
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -97,6 +102,18 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
                     searchWithFilterOrQuery();
                 }
                 return true;
+            }
+        });
+        // Add this block to clear the list when the x button is pressed
+        binding.searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            @Override
+            public boolean onClose() {
+                // Clear the search query and filter state
+                currentSearchQuery = "";
+                currentFilter = null;
+                // Show only the user's own recipes
+                updateRecipeList(allRecipes);
+                return false; // Let the SearchView handle default behavior too
             }
         });
     }
@@ -147,12 +164,23 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         if (binding == null) {
             return;
         }
-        // Filter out null or invalid recipes
         List<Recipe> validRecipes = new ArrayList<>();
-        for (Recipe recipe : recipes) {
-            if (recipe != null && recipe.getTitle() != null && !recipe.getTitle().trim().isEmpty()
-                    && recipe.getIngredients() != null && !recipe.getIngredients().isEmpty()) {
-                validRecipes.add(recipe);
+        if (currentSearchQuery != null && !currentSearchQuery.isEmpty()) {
+            // When searching, show only API/search results
+            for (Recipe recipe : recipes) {
+                if (recipe != null && recipe.getTitle() != null && !recipe.getTitle().trim().isEmpty()
+                        && recipe.getIngredients() != null && !recipe.getIngredients().isEmpty()) {
+                    validRecipes.add(recipe);
+                }
+            }
+        } else {
+            // When not searching, show only user recipes that are favorited
+            for (Recipe userRecipe : allRecipes) {
+                if (userRecipe != null && userRecipe.getTitle() != null && !userRecipe.getTitle().trim().isEmpty()
+                        && userRecipe.getIngredients() != null && !userRecipe.getIngredients().isEmpty()
+                        && userRecipe.isFavorite()) {
+                    validRecipes.add(userRecipe);
+                }
             }
         }
         if (recipeAdapter != null) {

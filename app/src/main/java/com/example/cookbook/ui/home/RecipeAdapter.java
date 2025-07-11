@@ -24,15 +24,21 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
     private List<Recipe> recipes;
     private final OnRecipeClickListener listener;
     private final FirebaseManager firebaseManager;
+    // Add a callback interface for reload
+    public interface OnFavoriteChangedListener {
+        void onFavoriteChanged();
+    }
+    private final OnFavoriteChangedListener favoriteChangedListener;
 
     public interface OnRecipeClickListener {
         void onRecipeClick(Recipe recipe);
     }
 
-    public RecipeAdapter(List<Recipe> recipes, OnRecipeClickListener listener) {
+    public RecipeAdapter(List<Recipe> recipes, OnRecipeClickListener listener, OnFavoriteChangedListener favoriteChangedListener) {
         this.recipes = recipes;
         this.listener = listener;
         this.firebaseManager = FirebaseManager.getInstance();
+        this.favoriteChangedListener = favoriteChangedListener;
     }
 
     @NonNull
@@ -151,6 +157,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                             if (!newFavoriteState) {
                                 Toast.makeText(binding.getRoot().getContext(), 
                                     "Recipe removed from favorites", Toast.LENGTH_SHORT).show();
+                                if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
                             }
                         })
                         .addOnFailureListener(e -> {
