@@ -76,8 +76,6 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
             binding.tvTitle.setText(recipe.getTitle());
             binding.tvCategory.setText(recipe.getCategory());
             binding.tvIngredients.setText(recipe.getIngredients().size() + " ingredients");
-            
-            // Load recipe image
             if (recipe.getImageUrl() != null && !recipe.getImageUrl().isEmpty()) {
                 Glide.with(binding.getRoot())
                     .load(recipe.getImageUrl())
@@ -85,25 +83,16 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                     .error(R.drawable.placeholder_recipe)
                     .into(binding.ivRecipe);
             }
-
-            // Set favorite state
-            android.util.Log.d("RecipeAdapter", "Setting favorite state for recipe: " + recipe.getTitle() + 
-                ", isFavorite: " + recipe.isFavorite() + ", recipeId: " + recipe.getId());
             binding.ivFavorite.setImageResource(
                 recipe.isFavorite() ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
             );
-
-            // Set click listeners
             binding.getRoot().setOnClickListener(v -> {
-                // If the recipe is imported from API and missing details, fetch full details
                 if (recipe.isImportedFromApi() && (recipe.getInstructions() == null || recipe.getInstructions().length() < 10 || recipe.getIngredients() == null || recipe.getIngredients().size() <= 1)) {
                     if (recipe.getId() == null || recipe.getId().isEmpty()) {
                         Toast.makeText(binding.getRoot().getContext(), "Recipe ID missing, cannot load details", Toast.LENGTH_SHORT).show();
-                        android.util.Log.e("RecipeAdapter", "Recipe ID is null or empty for: " + recipe.getTitle());
                         return;
                     }
                     Toast.makeText(binding.getRoot().getContext(), "Loading full recipe details...", Toast.LENGTH_SHORT).show();
-                    android.util.Log.d("RecipeAdapter", "Fetching full recipe details for ID: " + recipe.getId());
                     firebaseManager.fetchFullRecipeById(recipe.getId(), new FirebaseManager.OnRecipesLoadedListener() {
                         @Override
                         public void onRecipesLoaded(List<Recipe> recipes) {
@@ -113,13 +102,11 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                                 binding.getRoot().getContext().startActivity(intent);
                             } else {
                                 Toast.makeText(binding.getRoot().getContext(), "Recipe details not found", Toast.LENGTH_SHORT).show();
-                                android.util.Log.e("RecipeAdapter", "No recipe details found for ID: " + recipe.getId());
                             }
                         }
                         @Override
                         public void onError(String error) {
                             Toast.makeText(binding.getRoot().getContext(), "Failed to load recipe details", Toast.LENGTH_SHORT).show();
-                            android.util.Log.e("RecipeAdapter", "Failed to load recipe details for ID: " + recipe.getId() + ", error: " + error);
                         }
                     });
                 } else {
@@ -128,19 +115,13 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                     binding.getRoot().getContext().startActivity(intent);
                 }
             });
-            
             binding.ivFavorite.setOnClickListener(v -> {
                 boolean newFavoriteState = !recipe.isFavorite();
-                android.util.Log.d("RecipeAdapter", "Favorite button clicked for recipe: " + recipe.getTitle() + 
-                    ", current state: " + recipe.isFavorite() + ", new state: " + newFavoriteState + 
-                    ", recipeId: " + recipe.getId() + ", importedFromApi: " + recipe.isImportedFromApi());
                 recipe.setFavorite(newFavoriteState);
                 binding.ivFavorite.setImageResource(
                     newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
                 );
-                
                 if (recipe.isImportedFromApi() && newFavoriteState) {
-                    // For API recipes, use favoriteApiRecipe only when favoriting
                     firebaseManager.favoriteApiRecipe(recipe)
                         .addOnSuccessListener(aVoid -> {
                             Toast.makeText(binding.getRoot().getContext(), 
@@ -148,7 +129,6 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                             if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
                         })
                         .addOnFailureListener(e -> {
-                            // Revert the UI state if the operation failed
                             recipe.setFavorite(!newFavoriteState);
                             binding.ivFavorite.setImageResource(
                                 !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
@@ -157,7 +137,6 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                                 "Failed to add recipe to favorites", Toast.LENGTH_SHORT).show();
                         });
                 } else {
-                    // For local recipes or when unfavoriting, use toggleFavoriteRecipe
                     firebaseManager.toggleFavoriteRecipe(recipe.getId(), newFavoriteState)
                         .addOnSuccessListener(aVoid -> {
                             String message = newFavoriteState ? 
@@ -167,7 +146,6 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                             if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
                         })
                         .addOnFailureListener(e -> {
-                            // Revert the UI state if the operation failed
                             recipe.setFavorite(!newFavoriteState);
                             binding.ivFavorite.setImageResource(
                                 !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
@@ -177,7 +155,6 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                         });
                 }
             });
-
             binding.ivShare.setOnClickListener(v -> showShareOptions(recipe));
         }
 

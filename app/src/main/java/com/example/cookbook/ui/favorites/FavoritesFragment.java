@@ -48,10 +48,8 @@ public class FavoritesFragment extends Fragment {
 
     private void setupRecyclerView() {
         recipeAdapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
-            // TODO: Handle recipe click - open recipe details
             Toast.makeText(requireContext(), "Recipe clicked: " + recipe.getTitle(), Toast.LENGTH_SHORT).show();
         }, () -> {
-            // OnFavoriteChangedListener - reload favorites when a recipe is unfavorited
             loadFavoriteRecipes();
         });
         
@@ -61,19 +59,12 @@ public class FavoritesFragment extends Fragment {
 
     private void loadFavoriteRecipes() {
         binding.progressBar.setVisibility(View.VISIBLE);
-        
         firebaseManager.getFavoriteRecipes()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Recipe> recipes = new ArrayList<>();
-                    android.util.Log.d("FavoritesFragment", "Loaded " + queryDocumentSnapshots.size() + " favorite recipes from Firebase");
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Recipe recipe = document.toObject(Recipe.class);
                         recipe.setId(document.getId());
-                        android.util.Log.d("FavoritesFragment", "Added favorite recipe: " + recipe.getTitle() + 
-                            ", isFavorite: " + recipe.isFavorite() + ", recipeId: " + recipe.getId());
-                        
-                        // Log raw document data to debug field mapping
-                        android.util.Log.d("FavoritesFragment", "Raw document data for " + recipe.getTitle() + ": " + document.getData());
                         recipes.add(recipe);
                     }
                     recipeAdapter.updateRecipes(recipes);

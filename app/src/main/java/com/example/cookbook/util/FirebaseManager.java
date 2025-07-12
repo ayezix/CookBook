@@ -43,6 +43,18 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * FirebaseManager is a singleton class that handles all Firebase-related operations
+ * for the CookBook application. It manages user authentication, recipe storage,
+ * and integration with external recipe APIs.
+ * 
+ * This class provides methods for:
+ * - User registration and authentication
+ * - Recipe CRUD operations
+ * - Favorite recipe management
+ * - Image upload functionality
+ * - External API integration (TheMealDB)
+ */
 public class FirebaseManager {
     private static final String TAG = "FirebaseManager";
     private static final String USERS_COLLECTION = "users";
@@ -54,6 +66,10 @@ public class FirebaseManager {
 
     private static FirebaseManager instance;
 
+    /**
+     * Private constructor for singleton pattern.
+     * Initializes Firebase Auth and Firestore instances.
+     */
     private FirebaseManager() {
         try {
             auth = FirebaseAuth.getInstance();
@@ -66,6 +82,12 @@ public class FirebaseManager {
         }
     }
 
+    /**
+     * Gets the singleton instance of FirebaseManager.
+     * Creates a new instance if one doesn't exist.
+     * 
+     * @return The FirebaseManager instance
+     */
     public static synchronized FirebaseManager getInstance() {
         if (instance == null) {
             try {
@@ -78,7 +100,13 @@ public class FirebaseManager {
         return instance;
     }
 
-    // Authentication methods
+    /**
+     * Registers a new user with email and password.
+     * 
+     * @param email The user's email address
+     * @param password The user's password
+     * @return Task containing the authentication result
+     */
     public Task<AuthResult> registerUser(String email, String password) {
         Log.d(TAG, "Attempting to register user: " + email);
         return auth.createUserWithEmailAndPassword(email, password)
@@ -107,24 +135,13 @@ public class FirebaseManager {
                 });
     }
 
-    private String translateRegistrationError(String firebaseError) {
-        if (firebaseError == null) {
-            return "Registration failed";
-        }
-        
-        if (firebaseError.contains("email address is already in use")) {
-            return "This email is already registered";
-        } else if (firebaseError.contains("badly formatted")) {
-            return "Invalid email format";
-        } else if (firebaseError.contains("network error")) {
-            return "Network error. Please check your connection";
-        } else if (firebaseError.contains("password is too weak")) {
-            return "Password is too weak. Use a stronger password";
-        } else {
-            return "Registration failed: " + firebaseError;
-        }
-    }
-
+    /**
+     * Logs in a user with email and password.
+     * 
+     * @param email The user's email address
+     * @param password The user's password
+     * @return Task containing the authentication result
+     */
     public Task<AuthResult> loginUser(String email, String password) {
         Log.d(TAG, "Attempting to login user: " + email);
         return auth.signInWithEmailAndPassword(email, password)
@@ -142,38 +159,9 @@ public class FirebaseManager {
                 });
     }
 
-    private String translateFirebaseError(String firebaseError) {
-        if (firebaseError == null) {
-            return "Login failed";
-        }
-        
-        // Log the exact Firebase error for debugging
-        Log.d(TAG, "Firebase error: " + firebaseError);
-        
-        // Check for user not found errors first
-        if (firebaseError.contains("no user record") || 
-            firebaseError.contains("user not found") ||
-            firebaseError.contains("invalid email") ||
-            firebaseError.contains("there is no user record")) {
-            return "No account found with this email";
-        } else if (firebaseError.contains("password is invalid") ||
-                   firebaseError.contains("The supplied auth credential is incorrect") ||
-                   firebaseError.contains("supplied auth credential is malformed") ||
-                   firebaseError.contains("has expired")) {
-            // Firebase doesn't distinguish between wrong password and non-existent user
-            // for security reasons, so we provide a generic message
-            return "Invalid email or password";
-        } else if (firebaseError.contains("badly formatted")) {
-            return "Invalid email format";
-        } else if (firebaseError.contains("network error")) {
-            return "Network error. Please check your connection";
-        } else if (firebaseError.contains("too many requests")) {
-            return "Too many attempts. Please try again later";
-        } else {
-            return "Login failed: " + firebaseError;
-        }
-    }
-
+    /**
+     * Logs out the current user.
+     */
     public void logoutUser() {
         try {
             auth.signOut();
@@ -183,7 +171,12 @@ public class FirebaseManager {
         }
     }
 
-    // Recipe methods
+    /**
+     * Adds a new recipe to Firestore.
+     * 
+     * @param recipe The recipe to add
+     * @return Task containing the document reference
+     */
     public Task<DocumentReference> addRecipe(Recipe recipe) {
         Log.d(TAG, "addRecipe called with recipe: " + recipe.getTitle());
         String userId = getCurrentUserId();
@@ -209,12 +202,24 @@ public class FirebaseManager {
                 });
     }
 
+    /**
+     * Updates an existing recipe in Firestore.
+     * 
+     * @param recipe The recipe to update
+     * @return Task indicating success or failure
+     */
     public Task<Void> updateRecipe(Recipe recipe) {
         return db.collection(RECIPES_COLLECTION)
                 .document(recipe.getId())
                 .set(recipe);
     }
 
+    /**
+     * Deletes a recipe from Firestore.
+     * 
+     * @param recipeId The ID of the recipe to delete
+     * @return Task indicating success or failure
+     */
     public Task<Void> deleteRecipe(String recipeId) {
         return db.collection(RECIPES_COLLECTION)
                 .document(recipeId)
@@ -227,6 +232,11 @@ public class FirebaseManager {
                 });
     }
 
+    /**
+     * Retrieves all recipes created by the current user.
+     * 
+     * @return Task containing the query snapshot with user recipes
+     */
     public Task<QuerySnapshot> getUserRecipes() {
         Log.d(TAG, "getUserRecipes called");
         String userId = getCurrentUserId();
@@ -252,6 +262,12 @@ public class FirebaseManager {
                 });
     }
 
+    /**
+     * Searches for recipes by name (case-insensitive).
+     * 
+     * @param query The search query
+     * @return Task containing matching recipes
+     */
     public Task<QuerySnapshot> searchRecipesByName(String query) {
         String userId = getCurrentUserId();
         if (userId == null) {
@@ -266,6 +282,12 @@ public class FirebaseManager {
                 .get();
     }
 
+    /**
+     * Searches for recipes by category.
+     * 
+     * @param category The category to search for
+     * @return Task containing matching recipes
+     */
     public Task<QuerySnapshot> searchRecipesByCategory(String category) {
         return db.collection(RECIPES_COLLECTION)
                 .whereEqualTo("userId", getCurrentUserId())
@@ -273,6 +295,12 @@ public class FirebaseManager {
                 .get();
     }
 
+    /**
+     * Searches for recipes by ingredient.
+     * 
+     * @param ingredient The ingredient to search for
+     * @return Task containing matching recipes
+     */
     public Task<QuerySnapshot> searchRecipesByIngredient(String ingredient) {
         return db.collection(RECIPES_COLLECTION)
                 .whereEqualTo("userId", getCurrentUserId())
@@ -280,7 +308,12 @@ public class FirebaseManager {
                 .get();
     }
 
-    // Image upload methods
+    /**
+     * Uploads a recipe image to ImgBB and returns the URL.
+     * 
+     * @param imageUri The URI of the image to upload
+     * @return Task containing the uploaded image URL
+     */
     public Task<String> uploadRecipeImage(Uri imageUri) {
         Log.d(TAG, "Starting image upload...");
         Log.d(TAG, "Selected Image URI: " + imageUri);
@@ -314,6 +347,13 @@ public class FirebaseManager {
         return task;
     }
 
+    /**
+     * Creates a temporary file from a URI for image upload.
+     * 
+     * @param uri The URI to convert to a file
+     * @return The temporary file
+     * @throws IOException If file creation fails
+     */
     private File createTempFileFromUri(Uri uri) throws IOException {
         InputStream inputStream = context.getContentResolver().openInputStream(uri);
         File tempFile = File.createTempFile("recipe_image_", ".jpg", context.getCacheDir());
@@ -331,20 +371,24 @@ public class FirebaseManager {
         return tempFile;
     }
 
-    // Favorite recipes methods
+    /**
+     * Toggles the favorite status of a recipe.
+     * 
+     * @param recipeId The ID of the recipe
+     * @param isFavorite The new favorite status
+     * @return Task indicating success or failure
+     */
     public Task<Void> toggleFavoriteRecipe(String recipeId, boolean isFavorite) {
-        Log.d(TAG, "toggleFavoriteRecipe called - recipeId: " + recipeId + ", isFavorite: " + isFavorite);
         return db.collection(RECIPES_COLLECTION)
                 .document(recipeId)
-                .update("favorite", isFavorite)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Successfully updated favorite state for recipe: " + recipeId + " to: " + isFavorite);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to update favorite state for recipe: " + recipeId, e);
-                });
+                .update("favorite", isFavorite);
     }
 
+    /**
+     * Retrieves all favorite recipes for the current user.
+     * 
+     * @return Task containing favorite recipes
+     */
     public Task<QuerySnapshot> getFavoriteRecipes() {
         return db.collection(RECIPES_COLLECTION)
                 .whereEqualTo("userId", getCurrentUserId())
@@ -352,36 +396,37 @@ public class FirebaseManager {
                 .get();
     }
 
-    // New method to favorite an API recipe
+    /**
+     * Favorites an API recipe by saving it to Firestore.
+     * 
+     * @param recipe The API recipe to favorite
+     * @return Task indicating success or failure
+     */
     public Task<Void> favoriteApiRecipe(Recipe recipe) {
-        Log.d(TAG, "Starting to favorite API recipe: " + recipe.getTitle());
         try {
-            // Set a flag to indicate this recipe was imported from API
             recipe.setImportedFromApi(true);
-            recipe.setFavorite(true); // Set favorite state to true
-            Log.d(TAG, "Recipe marked as imported from API and favorited");
-            
-            // Save the recipe to Firestore
+            recipe.setFavorite(true);
             return addRecipe(recipe)
                 .continueWithTask(task -> {
                     if (task.isSuccessful()) {
                         String recipeId = task.getResult().getId();
-                        recipe.setId(recipeId); // Set the ID on the recipe object
-                        Log.d(TAG, "Recipe saved successfully with ID: " + recipeId);
+                        recipe.setId(recipeId);
                         return task.getResult().getParent().document(recipeId)
                             .update("favorite", true);
                     } else {
-                        Log.e(TAG, "Failed to save recipe", task.getException());
                         throw task.getException();
                     }
                 });
         } catch (Exception e) {
-            Log.e(TAG, "Error in favoriteApiRecipe", e);
             return Tasks.forException(e);
         }
     }
 
-    // Helper methods
+    /**
+     * Gets the current user's ID.
+     * 
+     * @return The current user's ID, or null if not logged in
+     */
     public String getCurrentUserId() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
@@ -390,6 +435,11 @@ public class FirebaseManager {
         return user != null ? user.getUid() : null;
     }
 
+    /**
+     * Gets the current Firebase user.
+     * 
+     * @return The current Firebase user, or null if not logged in
+     */
     public FirebaseUser getCurrentUser() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
@@ -398,6 +448,12 @@ public class FirebaseManager {
         return user;
     }
 
+    /**
+     * Sends a password reset email to the specified email address.
+     * 
+     * @param email The email address to send the reset email to
+     * @return Task indicating success or failure
+     */
     public Task<Void> sendPasswordResetEmail(String email) {
         Log.d(TAG, "Sending password reset email to: " + email);
         return auth.sendPasswordResetEmail(email)
@@ -415,6 +471,12 @@ public class FirebaseManager {
                 });
     }
 
+    /**
+     * Translates Firebase password reset errors to user-friendly messages.
+     * 
+     * @param firebaseError The Firebase error message
+     * @return User-friendly error message
+     */
     private String translatePasswordResetError(String firebaseError) {
         if (firebaseError == null) {
             return "Failed to send reset email";
@@ -429,10 +491,22 @@ public class FirebaseManager {
         }
     }
 
+    /**
+     * Searches for recipes from TheMealDB API.
+     * 
+     * @param query The search query
+     * @param listener Callback for search results
+     */
     public void searchOnlineRecipes(String query, OnRecipesLoadedListener listener) {
         searchOnlineRecipesWithFilter(RecipeFilter.bySearch(query), listener);
     }
 
+    /**
+     * Searches for recipes from TheMealDB API using a filter.
+     * 
+     * @param filter The filter to apply
+     * @param listener Callback for search results
+     */
     public void searchOnlineRecipesWithFilter(RecipeFilter filter, OnRecipesLoadedListener listener) {
         Call<ApiRecipeResponse> call;
         String logMsg = "";
@@ -504,7 +578,11 @@ public class FirebaseManager {
         });
     }
 
-    // Get available categories for filtering
+    /**
+     * Retrieves available categories from TheMealDB API.
+     * 
+     * @param listener Callback for categories
+     */
     public void getCategories(OnCategoriesLoadedListener listener) {
         ApiClient.getRecipeService().getCategories()
             .enqueue(new Callback<CategoryResponse>() {
@@ -524,7 +602,11 @@ public class FirebaseManager {
             });
     }
 
-    // Get available areas for filtering
+    /**
+     * Retrieves available areas from TheMealDB API.
+     * 
+     * @param listener Callback for areas
+     */
     public void getAreas(OnAreasLoadedListener listener) {
         ApiClient.getRecipeService().getAreas("list")
             .enqueue(new Callback<AreaResponse>() {
@@ -544,7 +626,11 @@ public class FirebaseManager {
             });
     }
 
-    // Get available ingredients for filtering
+    /**
+     * Retrieves available ingredients from TheMealDB API.
+     * 
+     * @param listener Callback for ingredients
+     */
     public void getIngredients(OnIngredientsLoadedListener listener) {
         ApiClient.getRecipeService().getIngredients("list")
             .enqueue(new Callback<IngredientResponse>() {
@@ -564,7 +650,13 @@ public class FirebaseManager {
             });
     }
 
-    // Apply local filters for dietary restrictions
+    /**
+     * Applies local filters to recipe results.
+     * 
+     * @param recipes The recipes to filter
+     * @param filter The filter to apply
+     * @return Filtered list of recipes
+     */
     private List<Recipe> applyLocalFilters(List<Recipe> recipes, RecipeFilter filter) {
         // This is where we can add local filtering logic for dietary restrictions
         // For now, we'll implement basic vegan/vegetarian filtering based on ingredients
@@ -580,6 +672,13 @@ public class FirebaseManager {
         return filteredRecipes;
     }
 
+    /**
+     * Checks if a recipe is suitable for a given filter.
+     * 
+     * @param recipe The recipe to check
+     * @param filter The filter to apply
+     * @return true if the recipe matches the filter
+     */
     private boolean isRecipeSuitableForFilter(Recipe recipe, RecipeFilter filter) {
         // Add local filtering logic here
         // For example, check ingredients for vegan/vegetarian compliance
@@ -589,6 +688,12 @@ public class FirebaseManager {
         return true;
     }
 
+    /**
+     * Converts API recipes to local Recipe objects.
+     * 
+     * @param apiRecipes The API recipes to convert
+     * @return List of local Recipe objects
+     */
     private List<Recipe> convertApiRecipesToLocalRecipes(List<ApiRecipe> apiRecipes) {
         List<Recipe> recipes = new ArrayList<>();
         for (ApiRecipe apiRecipe : apiRecipes) {
@@ -616,6 +721,12 @@ public class FirebaseManager {
         return recipes;
     }
 
+    /**
+     * Extracts ingredients from TheMealDB API response.
+     * 
+     * @param apiRecipe The API recipe
+     * @return List of ingredients
+     */
     private List<Ingredient> extractIngredientsFromTheMealDB(ApiRecipe apiRecipe) {
         List<Ingredient> ingredients = new ArrayList<>();
         
@@ -669,26 +780,43 @@ public class FirebaseManager {
         return ingredients;
     }
 
+    /**
+     * Callback interface for recipe loading operations.
+     */
     public interface OnRecipesLoadedListener {
         void onRecipesLoaded(List<Recipe> recipes);
         void onError(String error);
     }
 
+    /**
+     * Callback interface for category loading operations.
+     */
     public interface OnCategoriesLoadedListener {
         void onCategoriesLoaded(List<CategoryResponse.Category> categories);
         void onError(String error);
     }
 
+    /**
+     * Callback interface for area loading operations.
+     */
     public interface OnAreasLoadedListener {
         void onAreasLoaded(List<AreaResponse.Area> areas);
         void onError(String error);
     }
 
+    /**
+     * Callback interface for ingredient loading operations.
+     */
     public interface OnIngredientsLoadedListener {
         void onIngredientsLoaded(List<IngredientResponse.Ingredient> ingredients);
         void onError(String error);
     }
 
+    /**
+     * Loads recipes from both local storage and external API.
+     * 
+     * @param listener Callback for loaded recipes
+     */
     public void loadRecipes(OnRecipesLoadedListener listener) {
         if (listener == null) {
             return;
@@ -714,7 +842,11 @@ public class FirebaseManager {
     }
 
     /**
-     * Search recipes online by filter OR query (combines both result sets, removes duplicates by title)
+     * Searches for recipes using both local storage and external API.
+     * 
+     * @param filter The filter to apply
+     * @param query The search query
+     * @param listener Callback for search results
      */
     public void searchOnlineRecipesByFilterOrQuery(RecipeFilter filter, String query, OnRecipesLoadedListener listener) {
         // If both are empty/null, just return empty
@@ -757,7 +889,12 @@ public class FirebaseManager {
         });
     }
 
-    // Fetch full recipe details from TheMealDB by ID
+    /**
+     * Fetches full recipe details by ID from TheMealDB API.
+     * 
+     * @param id The recipe ID
+     * @param listener Callback for recipe details
+     */
     public void fetchFullRecipeById(String id, OnRecipesLoadedListener listener) {
         ApiClient.getRecipeService().getRecipeInformation(id).enqueue(new retrofit2.Callback<ApiRecipeResponse>() {
             @Override
@@ -777,7 +914,11 @@ public class FirebaseManager {
     }
 
     /**
-     * Utility method to update the importedFromApi flag for all recipes with a given title.
+     * Updates the imported flag for a recipe by title.
+     * 
+     * @param title The recipe title
+     * @param imported Whether the recipe was imported
+     * @param listener Callback for the operation
      */
     public void updateRecipeImportedFlagByTitle(String title, boolean imported, OnRecipesLoadedListener listener) {
         db.collection(RECIPES_COLLECTION)
@@ -797,5 +938,67 @@ public class FirebaseManager {
             .addOnFailureListener(e -> {
                 if (listener != null) listener.onError(e.getMessage());
             });
+    }
+
+    /**
+     * Translates Firebase registration errors to user-friendly messages.
+     * 
+     * @param firebaseError The Firebase error message
+     * @return User-friendly error message
+     */
+    private String translateRegistrationError(String firebaseError) {
+        if (firebaseError == null) {
+            return "Registration failed";
+        }
+        
+        if (firebaseError.contains("email address is already in use")) {
+            return "This email is already registered";
+        } else if (firebaseError.contains("badly formatted")) {
+            return "Invalid email format";
+        } else if (firebaseError.contains("network error")) {
+            return "Network error. Please check your connection";
+        } else if (firebaseError.contains("password is too weak")) {
+            return "Password is too weak. Use a stronger password";
+        } else {
+            return "Registration failed: " + firebaseError;
+        }
+    }
+
+    /**
+     * Translates Firebase login errors to user-friendly messages.
+     * 
+     * @param firebaseError The Firebase error message
+     * @return User-friendly error message
+     */
+    private String translateFirebaseError(String firebaseError) {
+        if (firebaseError == null) {
+            return "Login failed";
+        }
+        
+        // Log the exact Firebase error for debugging
+        Log.d(TAG, "Firebase error: " + firebaseError);
+        
+        // Check for user not found errors first
+        if (firebaseError.contains("no user record") || 
+            firebaseError.contains("user not found") ||
+            firebaseError.contains("invalid email") ||
+            firebaseError.contains("there is no user record")) {
+            return "No account found with this email";
+        } else if (firebaseError.contains("password is invalid") ||
+                   firebaseError.contains("The supplied auth credential is incorrect") ||
+                   firebaseError.contains("supplied auth credential is malformed") ||
+                   firebaseError.contains("has expired")) {
+            // Firebase doesn't distinguish between wrong password and non-existent user
+            // for security reasons, so we provide a generic message
+            return "Invalid email or password";
+        } else if (firebaseError.contains("badly formatted")) {
+            return "Invalid email format";
+        } else if (firebaseError.contains("network error")) {
+            return "Network error. Please check your connection";
+        } else if (firebaseError.contains("too many requests")) {
+            return "Too many attempts. Please try again later";
+        } else {
+            return "Login failed: " + firebaseError;
+        }
     }
 } 

@@ -205,33 +205,19 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
     private void setupClickListeners() {
         binding.fabAddRecipe.setOnClickListener(v -> 
             startActivityForResult(new Intent(requireContext(), AddRecipeActivity.class), 1001));
-            
-        // Remove Add Sample Recipes button and related click listener
-        // Remove any Toasts or messages about sample recipes
-        // Remove any code that calls addSampleRecipes or addSampleRecipesIfNeeded
-        // Remove logic that adds sample recipes if the user's recipe list is empty
-        // Remove references to btnAddSampleRecipes in setupClickListeners and layout
-        // Remove any logic that mentions sample recipes in loadRecipes()
-
-        // Add filter button click listener
         binding.btnFilter.setOnClickListener(v -> showFilterDialogWithOptions());
-        
-        // Add clear filter button click listener
         binding.btnClearFilter.setOnClickListener(v -> clearFilter());
     }
 
-    // New method to load filter options and show dialog
     private void showFilterDialogWithOptions() {
         binding.progressBar.setVisibility(View.VISIBLE);
         filterOptionsLoaded = false;
         filterCategories.clear();
         filterAreas.clear();
         filterIngredients.clear();
-
         firebaseManager.getCategories(new FirebaseManager.OnCategoriesLoadedListener() {
             @Override
             public void onCategoriesLoaded(List<CategoryResponse.Category> categories) {
-                // Only allow these categories
                 List<String> allowedCategories = java.util.Arrays.asList("Dessert", "Side", "Starter", "Breakfast", "Goat");
                 ArrayList<CategoryResponse.Category> filtered = new ArrayList<>();
                 for (CategoryResponse.Category cat : categories) {
@@ -274,7 +260,6 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         });
     }
 
-    // Helper to show dialog only when all options are loaded
     private void checkAndShowDialog() {
         if (!filterCategories.isEmpty() && !filterAreas.isEmpty() && !filterIngredients.isEmpty() && !filterOptionsLoaded) {
             filterOptionsLoaded = true;
@@ -285,37 +270,19 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
     }
 
     private void loadRecipes() {
-        android.util.Log.d("HomeFragment", "loadRecipes() called");
         binding.progressBar.setVisibility(View.VISIBLE);
-        
-        // First try to load user's recipes
         firebaseManager.getUserRecipes()
             .addOnSuccessListener(queryDocumentSnapshots -> {
                 allRecipes.clear();
-                android.util.Log.d("HomeFragment", "Loaded " + queryDocumentSnapshots.size() + " recipes from Firebase");
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                     Recipe recipe = document.toObject(Recipe.class);
                     recipe.setId(document.getId());
                     allRecipes.add(recipe);
-                    android.util.Log.d("HomeFragment", "Added recipe: " + recipe.getTitle() + 
-                        ", importedFromApi: " + recipe.isImportedFromApi() + 
-                        ", userId: " + recipe.getUserId() + 
-                        ", isFavorite: " + recipe.isFavorite());
-                    
-                    // Log raw document data to debug field mapping
-                    android.util.Log.d("HomeFragment", "Raw document data for " + recipe.getTitle() + ": " + document.getData());
                 }
-                
-                // If user has no recipes, add sample recipes only if not already added
-                // Remove any logic that adds sample recipes if the user's recipe list is empty
-                // Remove references to btnAddSampleRecipes in setupClickListeners and layout
-                // Remove any logic that mentions sample recipes in loadRecipes()
-                android.util.Log.d("HomeFragment", "Calling updateRecipeList with " + allRecipes.size() + " recipes");
                 updateRecipeList(allRecipes);
                 binding.progressBar.setVisibility(View.GONE);
             })
             .addOnFailureListener(e -> {
-                android.util.Log.e("HomeFragment", "Failed to load recipes", e);
                 Toast.makeText(requireContext(), "Failed to load recipes: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 binding.progressBar.setVisibility(View.GONE);
                 updateEmptyState(true);
