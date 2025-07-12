@@ -3,6 +3,7 @@ package com.example.cookbook.model;
 import java.io.Serializable;
 import java.util.List;
 import java.util.ArrayList;
+import com.google.firebase.firestore.PropertyName;
 
 public class Recipe implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -14,7 +15,7 @@ public class Recipe implements Serializable {
     private String instructions;
     private String imageUrl;
     private String userId;
-    private boolean isFavorite;
+    private boolean favorite;
     private long createdAt;
     private boolean importedFromApi;
 
@@ -54,8 +55,10 @@ public class Recipe implements Serializable {
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 
-    public boolean isFavorite() { return isFavorite; }
-    public void setFavorite(boolean favorite) { isFavorite = favorite; }
+    @PropertyName("favorite")
+    public boolean isFavorite() { return favorite; }
+    @PropertyName("favorite")
+    public void setFavorite(boolean favorite) { this.favorite = favorite; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }

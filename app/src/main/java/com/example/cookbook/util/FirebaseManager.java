@@ -185,14 +185,28 @@ public class FirebaseManager {
 
     // Recipe methods
     public Task<DocumentReference> addRecipe(Recipe recipe) {
+        Log.d(TAG, "addRecipe called with recipe: " + recipe.getTitle());
         String userId = getCurrentUserId();
         if (userId == null) {
             Log.e(TAG, "Cannot add recipe: User not logged in");
             return null;
         }
+        Log.d(TAG, "Current user ID: " + userId);
         recipe.setUserId(userId);
+        Log.d(TAG, "Recipe details before saving: title=" + recipe.getTitle() + 
+            ", category=" + recipe.getCategory() + 
+            ", userId=" + recipe.getUserId() + 
+            ", importedFromApi=" + recipe.isImportedFromApi() + 
+            ", ingredients count=" + (recipe.getIngredients() != null ? recipe.getIngredients().size() : 0));
+        
         return db.collection(RECIPES_COLLECTION).add(recipe)
-                .addOnFailureListener(e -> Log.e(TAG, "Error adding recipe", e));
+                .addOnSuccessListener(documentReference -> {
+                    Log.d(TAG, "Recipe added successfully to Firestore with ID: " + documentReference.getId());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error adding recipe to Firestore", e);
+                    Log.e(TAG, "Error details: " + e.getMessage());
+                });
     }
 
     public Task<Void> updateRecipe(Recipe recipe) {
@@ -214,15 +228,28 @@ public class FirebaseManager {
     }
 
     public Task<QuerySnapshot> getUserRecipes() {
+        Log.d(TAG, "getUserRecipes called");
         String userId = getCurrentUserId();
         if (userId == null) {
             Log.e(TAG, "Cannot get user recipes: User not logged in");
             return Tasks.forException(new Exception("User not logged in"));
         }
+        Log.d(TAG, "Getting recipes for user ID: " + userId);
         // First try a simple query without ordering
         return db.collection(RECIPES_COLLECTION)
                 .whereEqualTo("userId", userId)
-                .get();
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    Log.d(TAG, "getUserRecipes success: found " + querySnapshot.size() + " recipes");
+                    for (QueryDocumentSnapshot document : querySnapshot) {
+                        Log.d(TAG, "Recipe in Firestore: " + document.getId() + " - " + 
+                            document.getString("title") + " (userId: " + document.getString("userId") + ")");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "getUserRecipes failed", e);
+                    Log.e(TAG, "Error details: " + e.getMessage());
+                });
     }
 
     public Task<QuerySnapshot> searchRecipesByName(String query) {
@@ -306,15 +333,22 @@ public class FirebaseManager {
 
     // Favorite recipes methods
     public Task<Void> toggleFavoriteRecipe(String recipeId, boolean isFavorite) {
+        Log.d(TAG, "toggleFavoriteRecipe called - recipeId: " + recipeId + ", isFavorite: " + isFavorite);
         return db.collection(RECIPES_COLLECTION)
                 .document(recipeId)
-                .update("isFavorite", isFavorite);
+                .update("favorite", isFavorite)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Successfully updated favorite state for recipe: " + recipeId + " to: " + isFavorite);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to update favorite state for recipe: " + recipeId, e);
+                });
     }
 
     public Task<QuerySnapshot> getFavoriteRecipes() {
         return db.collection(RECIPES_COLLECTION)
                 .whereEqualTo("userId", getCurrentUserId())
-                .whereEqualTo("isFavorite", true)
+                .whereEqualTo("favorite", true)
                 .get();
     }
 
@@ -335,7 +369,7 @@ public class FirebaseManager {
                         recipe.setId(recipeId); // Set the ID on the recipe object
                         Log.d(TAG, "Recipe saved successfully with ID: " + recipeId);
                         return task.getResult().getParent().document(recipeId)
-                            .update("isFavorite", true);
+                            .update("favorite", true);
                     } else {
                         Log.e(TAG, "Failed to save recipe", task.getException());
                         throw task.getException();
@@ -404,6 +438,9 @@ public class FirebaseManager {
         String logMsg = "";
         String endpoint = "filter.php";
         String param = "";
+        
+        android.util.Log.d(TAG, "searchOnlineRecipesWithFilter called with filter type: " + filter.getType() + ", value: " + filter.getValue());
+        
         switch (filter.getType()) {
             case CATEGORY:
                 param = "c=" + filter.getValue();
@@ -431,23 +468,31 @@ public class FirebaseManager {
         call.enqueue(new Callback<ApiRecipeResponse>() {
             @Override
             public void onResponse(Call<ApiRecipeResponse> call, Response<ApiRecipeResponse> response) {
+                android.util.Log.d(TAG, "API Response received - successful: " + response.isSuccessful());
                 if (response.isSuccessful() && response.body() != null) {
                     List<ApiRecipe> searchResults = response.body().getResults();
+                    android.util.Log.d(TAG, "Search results count: " + (searchResults != null ? searchResults.size() : 0));
                     if (searchResults != null && !searchResults.isEmpty()) {
                         List<Recipe> recipes = convertApiRecipesToLocalRecipes(searchResults);
+                        android.util.Log.d(TAG, "Converted recipes count: " + recipes.size());
                         
                         // Apply additional local filters (like vegan, gluten-free)
                         recipes = applyLocalFilters(recipes, filter);
+                        android.util.Log.d(TAG, "After local filtering: " + recipes.size() + " recipes");
                         
                         // Ensure we only return maximum 10 results
                         if (recipes.size() > 10) {
                             recipes = recipes.subList(0, 10);
+                            android.util.Log.d(TAG, "Limited to 10 recipes");
                         }
+                        android.util.Log.d(TAG, "Final recipes to return: " + recipes.size());
                         listener.onRecipesLoaded(recipes);
                     } else {
+                        android.util.Log.w(TAG, "No search results found");
                         listener.onRecipesLoaded(new ArrayList<>());
                     }
                 } else {
+                    android.util.Log.e(TAG, "API response not successful or body is null");
                     listener.onError("Failed to load recipes");
                 }
             }
@@ -729,5 +774,28 @@ public class FirebaseManager {
                 listener.onError(t.getMessage());
             }
         });
+    }
+
+    /**
+     * Utility method to update the importedFromApi flag for all recipes with a given title.
+     */
+    public void updateRecipeImportedFlagByTitle(String title, boolean imported, OnRecipesLoadedListener listener) {
+        db.collection(RECIPES_COLLECTION)
+            .whereEqualTo("title", title)
+            .get()
+            .addOnSuccessListener(queryDocumentSnapshots -> {
+                List<Recipe> updated = new ArrayList<>();
+                for (DocumentSnapshot document : queryDocumentSnapshots) {
+                    Recipe recipe = document.toObject(Recipe.class);
+                    recipe.setId(document.getId());
+                    recipe.setImportedFromApi(imported);
+                    db.collection(RECIPES_COLLECTION).document(document.getId()).update("importedFromApi", imported);
+                    updated.add(recipe);
+                }
+                if (listener != null) listener.onRecipesLoaded(updated);
+            })
+            .addOnFailureListener(e -> {
+                if (listener != null) listener.onError(e.getMessage());
+            });
     }
 } 

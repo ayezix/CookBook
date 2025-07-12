@@ -1,3 +1,13 @@
 {
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.gradle.enabled": false,
+    "java.import.gradle.wrapper.enabled": false,
+    "java.import.gradle.version": "8.6",
+    "java.import.gradle.offline.enabled": false,
+    "java.import.gradle.arguments": "",
+    "java.import.gradle.jvmArguments": "",
+    "java.import.gradle.userHome": "",
+    "java.import.gradle.javaHome": "",
+    "java.import.gradle.allowParallelRun": false,
+    "java.import.gradle.autoDetect": "off"
 }

@@ -198,6 +198,11 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
             recipe.setCategory(category);
             recipe.setInstructions(instructions);
             recipe.setIngredients(ingredients);
+            Log.d("AddRecipeActivity", "Created recipe object: " + recipe.toString());
+            Log.d("AddRecipeActivity", "Recipe details: title=" + recipe.getTitle() + 
+                ", category=" + recipe.getCategory() + 
+                ", ingredients count=" + (recipe.getIngredients() != null ? recipe.getIngredients().size() : 0) + 
+                ", instructions length=" + (recipe.getInstructions() != null ? recipe.getInstructions().length() : 0));
             if (selectedImageUri != null) {
                 // Upload image first
                 firebaseManager.uploadRecipeImage(selectedImageUri)
@@ -229,10 +234,14 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
 
     private void saveRecipeToFirestore(Recipe recipe) {
         Log.d("AddRecipeActivity", "Saving recipe to Firestore: " + recipe.toString());
+        // Ensure the recipe is marked as user-created (not imported from API)
+        recipe.setImportedFromApi(false);
         firebaseManager.addRecipe(recipe)
                 .addOnSuccessListener(documentReference -> {
                     Log.d("AddRecipeActivity", "Recipe saved successfully with ID: " + documentReference.getId());
                     Toast.makeText(this, R.string.msg_recipe_saved, Toast.LENGTH_SHORT).show();
+                    // Set result to indicate recipe was added
+                    setResult(RESULT_OK);
                     finish();
                 })
                 .addOnFailureListener(e -> {

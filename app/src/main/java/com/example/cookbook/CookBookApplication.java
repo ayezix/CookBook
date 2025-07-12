@@ -27,6 +27,21 @@ public class CookBookApplication extends Application {
                 Log.e(TAG, "Google Play Services is not available. Error code: " + resultCode);
             }
                 
+            // One-time update: set importedFromApi=true for Pierogi (Polish Dumplings)
+            com.example.cookbook.util.FirebaseManager.getInstance().updateRecipeImportedFlagByTitle(
+                "Pierogi (Polish Dumplings)",
+                true,
+                new com.example.cookbook.util.FirebaseManager.OnRecipesLoadedListener() {
+                    @Override
+                    public void onRecipesLoaded(java.util.List<com.example.cookbook.model.Recipe> recipes) {
+                        android.util.Log.d("CookBookApp", "Updated importedFromApi for Pierogi: " + recipes.size());
+                    }
+                    @Override
+                    public void onError(String error) {
+                        android.util.Log.e("CookBookApp", "Error updating importedFromApi for Pierogi: " + error);
+                    }
+                }
+            );
         } catch (Exception e) {
             Log.e(TAG, "Error initializing app", e);
         }

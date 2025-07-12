@@ -58,15 +58,15 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         setupRecyclerView();
         setupSearchView();
         setupClickListeners();
-        // Show only user recipes by default
-        updateRecipeList(allRecipes);
+        // Load user recipes from Firebase
+        loadRecipes();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        // Show only user recipes by default
-        updateRecipeList(allRecipes);
+        // Reload recipes from Firebase to get any new additions
+        loadRecipes();
     }
 
     private void setupRecyclerView() {
@@ -111,8 +111,10 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
                 // Clear the search query and filter state
                 currentSearchQuery = "";
                 currentFilter = null;
+                binding.btnClearFilter.setVisibility(View.GONE);
+                android.util.Log.d("HomeFragment", "Search cleared, loading user recipes");
                 // Show only the user's own recipes
-                updateRecipeList(allRecipes);
+                loadRecipes();
                 return false; // Let the SearchView handle default behavior too
             }
         });
@@ -161,12 +163,17 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
     }
 
     private void updateRecipeList(List<Recipe> recipes) {
+        android.util.Log.d("HomeFragment", "updateRecipeList called with " + recipes.size() + " recipes, currentSearchQuery: " + currentSearchQuery + ", currentFilter: " + (currentFilter != null ? currentFilter.getType() + "=" + currentFilter.getValue() : "null"));
         if (binding == null) {
+            android.util.Log.w("HomeFragment", "Binding is null, returning");
             return;
         }
         List<Recipe> validRecipes = new ArrayList<>();
-        if (currentSearchQuery != null && !currentSearchQuery.isEmpty()) {
-            // When searching, show only API/search results
+        
+        // If we have a filter or search query, show the API results
+        if ((currentFilter != null && currentFilter.getValue() != null && !currentFilter.getValue().isEmpty()) || 
+            (currentSearchQuery != null && !currentSearchQuery.isEmpty())) {
+            android.util.Log.d("HomeFragment", "Processing as API/search results");
             for (Recipe recipe : recipes) {
                 if (recipe != null && recipe.getTitle() != null && !recipe.getTitle().trim().isEmpty()
                         && recipe.getIngredients() != null && !recipe.getIngredients().isEmpty()) {
@@ -174,15 +181,21 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
                 }
             }
         } else {
-            // When not searching, show only user recipes that are favorited
+            // When no filter or search, show only user-created recipes (not imported from API, userId matches current user)
+            android.util.Log.d("HomeFragment", "Processing as user recipes, allRecipes size: " + allRecipes.size());
+            String currentUserId = firebaseManager.getCurrentUserId();
             for (Recipe userRecipe : allRecipes) {
-                if (userRecipe != null && userRecipe.getTitle() != null && !userRecipe.getTitle().trim().isEmpty()
+                if (userRecipe != null
+                        && userRecipe.getTitle() != null && !userRecipe.getTitle().trim().isEmpty()
                         && userRecipe.getIngredients() != null && !userRecipe.getIngredients().isEmpty()
-                        && userRecipe.isFavorite()) {
+                        && !userRecipe.isImportedFromApi()
+                        && userRecipe.getUserId() != null
+                        && userRecipe.getUserId().equals(currentUserId)) {
                     validRecipes.add(userRecipe);
                 }
             }
         }
+        android.util.Log.d("HomeFragment", "Valid recipes to display: " + validRecipes.size());
         if (recipeAdapter != null) {
             recipeAdapter.updateRecipes(validRecipes);
         }
@@ -191,7 +204,7 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
 
     private void setupClickListeners() {
         binding.fabAddRecipe.setOnClickListener(v -> 
-            startActivity(new Intent(requireContext(), AddRecipeActivity.class)));
+            startActivityForResult(new Intent(requireContext(), AddRecipeActivity.class), 1001));
             
         // Remove Add Sample Recipes button and related click listener
         // Remove any Toasts or messages about sample recipes
@@ -202,6 +215,9 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
 
         // Add filter button click listener
         binding.btnFilter.setOnClickListener(v -> showFilterDialogWithOptions());
+        
+        // Add clear filter button click listener
+        binding.btnClearFilter.setOnClickListener(v -> clearFilter());
     }
 
     // New method to load filter options and show dialog
@@ -261,24 +277,33 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
     }
 
     private void loadRecipes() {
+        android.util.Log.d("HomeFragment", "loadRecipes() called");
         binding.progressBar.setVisibility(View.VISIBLE);
         
         // First try to load user's recipes
         firebaseManager.getUserRecipes()
             .addOnSuccessListener(queryDocumentSnapshots -> {
                 allRecipes.clear();
+                android.util.Log.d("HomeFragment", "Loaded " + queryDocumentSnapshots.size() + " recipes from Firebase");
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                     Recipe recipe = document.toObject(Recipe.class);
                     recipe.setId(document.getId());
                     allRecipes.add(recipe);
+                    android.util.Log.d("HomeFragment", "Added recipe: " + recipe.getTitle() + 
+                        ", importedFromApi: " + recipe.isImportedFromApi() + 
+                        ", userId: " + recipe.getUserId() + 
+                        ", isFavorite: " + recipe.isFavorite());
+                    
+                    // Log raw document data to debug field mapping
+                    android.util.Log.d("HomeFragment", "Raw document data for " + recipe.getTitle() + ": " + document.getData());
                 }
                 
                 // If user has no recipes, add sample recipes only if not already added
                 // Remove any logic that adds sample recipes if the user's recipe list is empty
                 // Remove references to btnAddSampleRecipes in setupClickListeners and layout
                 // Remove any logic that mentions sample recipes in loadRecipes()
-                recipeAdapter.updateRecipes(allRecipes);
-                updateEmptyState(allRecipes.isEmpty());
+                android.util.Log.d("HomeFragment", "Calling updateRecipeList with " + allRecipes.size() + " recipes");
+                updateRecipeList(allRecipes);
                 binding.progressBar.setVisibility(View.GONE);
             })
             .addOnFailureListener(e -> {
@@ -299,29 +324,155 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
 
     @Override
     public void onFilterApplied(RecipeFilter filter) {
+        android.util.Log.d("HomeFragment", "Filter applied: " + filter.getType() + " = " + filter.getValue());
         binding.progressBar.setVisibility(View.VISIBLE);
         currentFilter = filter;
+        binding.btnClearFilter.setVisibility(View.VISIBLE);
         searchWithFilterOrQuery();
+    }
+    
+    private void clearFilter() {
+        android.util.Log.d("HomeFragment", "Clearing filter");
+        currentFilter = null;
+        binding.btnClearFilter.setVisibility(View.GONE);
+        loadRecipes();
     }
 
     private void searchWithFilterOrQuery() {
+        android.util.Log.d("HomeFragment", "searchWithFilterOrQuery called - filter: " + (currentFilter != null ? currentFilter.getType() + "=" + currentFilter.getValue() : "null") + ", query: " + currentSearchQuery);
         binding.progressBar.setVisibility(View.VISIBLE);
         // If both filter and query are empty, load all recipes
         if ((currentFilter == null || currentFilter.getValue() == null || currentFilter.getValue().isEmpty()) && (currentSearchQuery == null || currentSearchQuery.isEmpty())) {
+            android.util.Log.d("HomeFragment", "Both filter and query are empty, loading all recipes");
             loadRecipes();
             return;
         }
-        // Use the new FirebaseManager method
+        
+        // Search both local recipes and API recipes
+        List<Recipe> combinedResults = new ArrayList<>();
+        final int[] completedSearches = {0};
+        final int totalSearches = 2; // Local + API
+        
+        // Search local recipes first
+        if (currentSearchQuery != null && !currentSearchQuery.isEmpty()) {
+            // Search by name
+            firebaseManager.searchRecipesByName(currentSearchQuery)
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    android.util.Log.d("HomeFragment", "Local search by name found " + queryDocumentSnapshots.size() + " recipes");
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Recipe recipe = document.toObject(Recipe.class);
+                        recipe.setId(document.getId());
+                        // Only add user-created recipes (not imported from API)
+                        if (!recipe.isImportedFromApi()) {
+                            combinedResults.add(recipe);
+                        }
+                    }
+                    completedSearches[0]++;
+                    if (completedSearches[0] == totalSearches) {
+                        android.util.Log.d("HomeFragment", "All searches completed, total results: " + combinedResults.size());
+                        updateRecipeList(combinedResults);
+                        binding.progressBar.setVisibility(View.GONE);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    android.util.Log.e("HomeFragment", "Local search by name failed", e);
+                    completedSearches[0]++;
+                    if (completedSearches[0] == totalSearches) {
+                        android.util.Log.d("HomeFragment", "All searches completed, total results: " + combinedResults.size());
+                        updateRecipeList(combinedResults);
+                        binding.progressBar.setVisibility(View.GONE);
+                    }
+                });
+        } else if (currentFilter != null && currentFilter.getValue() != null && !currentFilter.getValue().isEmpty()) {
+            // Search by filter (category or ingredient only, since Recipe model doesn't have area field)
+            if (currentFilter.getType() == RecipeFilter.FilterType.CATEGORY) {
+                firebaseManager.searchRecipesByCategory(currentFilter.getValue())
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        android.util.Log.d("HomeFragment", "Local search by category found " + queryDocumentSnapshots.size() + " recipes");
+                        for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                            Recipe recipe = document.toObject(Recipe.class);
+                            recipe.setId(document.getId());
+                            // Only add user-created recipes (not imported from API)
+                            if (!recipe.isImportedFromApi()) {
+                                combinedResults.add(recipe);
+                            }
+                        }
+                        completedSearches[0]++;
+                        if (completedSearches[0] == totalSearches) {
+                            android.util.Log.d("HomeFragment", "All searches completed, total results: " + combinedResults.size());
+                            updateRecipeList(combinedResults);
+                            binding.progressBar.setVisibility(View.GONE);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        android.util.Log.e("HomeFragment", "Local search by category failed", e);
+                        completedSearches[0]++;
+                        if (completedSearches[0] == totalSearches) {
+                            android.util.Log.d("HomeFragment", "All searches completed, total results: " + combinedResults.size());
+                            updateRecipeList(combinedResults);
+                            binding.progressBar.setVisibility(View.GONE);
+                        }
+                    });
+            } else if (currentFilter.getType() == RecipeFilter.FilterType.INGREDIENT) {
+                firebaseManager.searchRecipesByIngredient(currentFilter.getValue())
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        android.util.Log.d("HomeFragment", "Local search by ingredient found " + queryDocumentSnapshots.size() + " recipes");
+                        for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                            Recipe recipe = document.toObject(Recipe.class);
+                            recipe.setId(document.getId());
+                            // Only add user-created recipes (not imported from API)
+                            if (!recipe.isImportedFromApi()) {
+                                combinedResults.add(recipe);
+                            }
+                        }
+                        completedSearches[0]++;
+                        if (completedSearches[0] == totalSearches) {
+                            android.util.Log.d("HomeFragment", "All searches completed, total results: " + combinedResults.size());
+                            updateRecipeList(combinedResults);
+                            binding.progressBar.setVisibility(View.GONE);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        android.util.Log.e("HomeFragment", "Local search by ingredient failed", e);
+                        completedSearches[0]++;
+                        if (completedSearches[0] == totalSearches) {
+                            android.util.Log.d("HomeFragment", "All searches completed, total results: " + combinedResults.size());
+                            updateRecipeList(combinedResults);
+                            binding.progressBar.setVisibility(View.GONE);
+                        }
+                    });
+            } else {
+                // For AREA filter, we can't search local recipes since Recipe model doesn't have area field
+                android.util.Log.d("HomeFragment", "Skipping local search for AREA filter (not supported)");
+                completedSearches[0]++;
+            }
+        } else {
+            // No search query or filter, skip local search
+            completedSearches[0]++;
+        }
+        
+        // Search API recipes
         firebaseManager.searchOnlineRecipesByFilterOrQuery(currentFilter, currentSearchQuery, new FirebaseManager.OnRecipesLoadedListener() {
             @Override
-            public void onRecipesLoaded(List<Recipe> recipes) {
-                updateRecipeList(recipes);
-                binding.progressBar.setVisibility(View.GONE);
+            public void onRecipesLoaded(List<Recipe> apiRecipes) {
+                android.util.Log.d("HomeFragment", "API search found " + apiRecipes.size() + " recipes");
+                combinedResults.addAll(apiRecipes);
+                completedSearches[0]++;
+                if (completedSearches[0] == totalSearches) {
+                    android.util.Log.d("HomeFragment", "All searches completed, total results: " + combinedResults.size());
+                    updateRecipeList(combinedResults);
+                    binding.progressBar.setVisibility(View.GONE);
+                }
             }
             @Override
             public void onError(String error) {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Search failed: " + error, Toast.LENGTH_SHORT).show();
+                android.util.Log.e("HomeFragment", "API search failed: " + error);
+                completedSearches[0]++;
+                if (completedSearches[0] == totalSearches) {
+                    android.util.Log.d("HomeFragment", "All searches completed, total results: " + combinedResults.size());
+                    updateRecipeList(combinedResults);
+                    binding.progressBar.setVisibility(View.GONE);
+                }
             }
         });
     }
@@ -333,6 +484,16 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
             case INGREDIENT: return "Ingredient";
             case SEARCH: return "Search";
             default: return "Filter";
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1001 && resultCode == android.app.Activity.RESULT_OK) {
+            // Recipe was added successfully, reload recipes
+            android.util.Log.d("HomeFragment", "Recipe added, reloading recipes");
+            loadRecipes();
         }
     }
 

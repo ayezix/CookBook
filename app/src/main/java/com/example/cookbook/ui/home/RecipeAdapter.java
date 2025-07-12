@@ -87,6 +87,8 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
             }
 
             // Set favorite state
+            android.util.Log.d("RecipeAdapter", "Setting favorite state for recipe: " + recipe.getTitle() + 
+                ", isFavorite: " + recipe.isFavorite() + ", recipeId: " + recipe.getId());
             binding.ivFavorite.setImageResource(
                 recipe.isFavorite() ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
             );
@@ -129,6 +131,9 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
             
             binding.ivFavorite.setOnClickListener(v -> {
                 boolean newFavoriteState = !recipe.isFavorite();
+                android.util.Log.d("RecipeAdapter", "Favorite button clicked for recipe: " + recipe.getTitle() + 
+                    ", current state: " + recipe.isFavorite() + ", new state: " + newFavoriteState + 
+                    ", recipeId: " + recipe.getId() + ", importedFromApi: " + recipe.isImportedFromApi());
                 recipe.setFavorite(newFavoriteState);
                 binding.ivFavorite.setImageResource(
                     newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
@@ -140,6 +145,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                         .addOnSuccessListener(aVoid -> {
                             Toast.makeText(binding.getRoot().getContext(), 
                                 "Recipe added to favorites", Toast.LENGTH_SHORT).show();
+                            if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
                         })
                         .addOnFailureListener(e -> {
                             // Revert the UI state if the operation failed
@@ -154,11 +160,11 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                     // For local recipes or when unfavoriting, use toggleFavoriteRecipe
                     firebaseManager.toggleFavoriteRecipe(recipe.getId(), newFavoriteState)
                         .addOnSuccessListener(aVoid -> {
-                            if (!newFavoriteState) {
-                                Toast.makeText(binding.getRoot().getContext(), 
-                                    "Recipe removed from favorites", Toast.LENGTH_SHORT).show();
-                                if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
-                            }
+                            String message = newFavoriteState ? 
+                                "Recipe added to favorites" : "Recipe removed from favorites";
+                            Toast.makeText(binding.getRoot().getContext(), 
+                                message, Toast.LENGTH_SHORT).show();
+                            if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
                         })
                         .addOnFailureListener(e -> {
                             // Revert the UI state if the operation failed

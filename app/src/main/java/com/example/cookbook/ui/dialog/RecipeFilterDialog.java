@@ -133,6 +133,11 @@ public class RecipeFilterDialog extends DialogFragment {
             checkCanEnableApplyButton();
         });
         
+        // Enable Apply button when a dietary restriction is selected
+        binding.radioGroupDietary.setOnCheckedChangeListener((group, checkedId) -> {
+            checkCanEnableApplyButton();
+        });
+        
         binding.btnApply.setOnClickListener(v -> applyFilter());
         binding.btnCancel.setOnClickListener(v -> dismiss());
         
