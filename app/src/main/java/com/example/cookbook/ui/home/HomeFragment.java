@@ -231,7 +231,15 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         firebaseManager.getCategories(new FirebaseManager.OnCategoriesLoadedListener() {
             @Override
             public void onCategoriesLoaded(List<CategoryResponse.Category> categories) {
-                filterCategories = new ArrayList<>(categories);
+                // Only allow these categories
+                List<String> allowedCategories = java.util.Arrays.asList("Dessert", "Side", "Starter", "Breakfast", "Goat");
+                ArrayList<CategoryResponse.Category> filtered = new ArrayList<>();
+                for (CategoryResponse.Category cat : categories) {
+                    if (allowedCategories.contains(cat.getName())) {
+                        filtered.add(cat);
+                    }
+                }
+                filterCategories = filtered;
                 checkAndShowDialog();
             }
             @Override
