@@ -51,7 +51,7 @@ public class FavoritesFragment extends Fragment {
         recipeAdapter = new RecipeAdapter(new ArrayList<>(), new RecipeAdapter.OnRecipeClickListener() {
             @Override
             public void onRecipeClick(Recipe recipe) {
-                Toast.makeText(requireContext(), "Recipe clicked: " + recipe.getTitle(), Toast.LENGTH_SHORT).show();
+                // Recipe click handled in RecipeAdapter
             }
         }, new RecipeAdapter.OnFavoriteChangedListener() {
             @Override

@@ -11,7 +11,7 @@ public class Ingredient implements Serializable {
     private boolean isCustom;
 
     public Ingredient() {
-        // Required empty constructor for Firestore
+        // Required empty constructor for Firebase
     }
 
     public Ingredient(String name, String amount, String unit) {

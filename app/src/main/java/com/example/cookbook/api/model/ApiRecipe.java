@@ -159,7 +159,7 @@ public class ApiRecipe {
     public String getMeasure19() { return measure19; }
     public String getMeasure20() { return measure20; }
 
-    // For compatibility with existing code
+
     public List<String> getDishTypes() { 
         // Return category as a list for compatibility
         return category != null ? List.of(category) : List.of("Other"); 

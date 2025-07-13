@@ -94,7 +94,6 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                             Toast.makeText(binding.getRoot().getContext(), "Recipe ID missing, cannot load details", Toast.LENGTH_SHORT).show();
                             return;
                         }
-                        Toast.makeText(binding.getRoot().getContext(), "Loading full recipe details...", Toast.LENGTH_SHORT).show();
                         firebaseManager.fetchFullRecipeById(recipe.getId(), new FirebaseManager.OnRecipesLoadedListener() {
                             @Override
                             public void onRecipesLoaded(List<Recipe> recipes) {
