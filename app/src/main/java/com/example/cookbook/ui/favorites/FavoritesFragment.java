@@ -47,10 +47,17 @@ public class FavoritesFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        recipeAdapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
-            Toast.makeText(requireContext(), "Recipe clicked: " + recipe.getTitle(), Toast.LENGTH_SHORT).show();
-        }, () -> {
-            loadFavoriteRecipes();
+        // Set up the adapter for the RecyclerView
+        recipeAdapter = new RecipeAdapter(new ArrayList<>(), new RecipeAdapter.OnRecipeClickListener() {
+            @Override
+            public void onRecipeClick(Recipe recipe) {
+                Toast.makeText(requireContext(), "Recipe clicked: " + recipe.getTitle(), Toast.LENGTH_SHORT).show();
+            }
+        }, new RecipeAdapter.OnFavoriteChangedListener() {
+            @Override
+            public void onFavoriteChanged() {
+                loadFavoriteRecipes();
+            }
         });
         
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -60,21 +67,27 @@ public class FavoritesFragment extends Fragment {
     private void loadFavoriteRecipes() {
         binding.progressBar.setVisibility(View.VISIBLE);
         firebaseManager.getFavoriteRecipes()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Recipe> recipes = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Recipe recipe = document.toObject(Recipe.class);
-                        recipe.setId(document.getId());
-                        recipes.add(recipe);
+                .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<com.google.firebase.firestore.QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(com.google.firebase.firestore.QuerySnapshot queryDocumentSnapshots) {
+                        List<Recipe> recipes = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                            Recipe recipe = document.toObject(Recipe.class);
+                            recipe.setId(document.getId());
+                            recipes.add(recipe);
+                        }
+                        recipeAdapter.updateRecipes(recipes);
+                        updateEmptyState(recipes.isEmpty());
+                        binding.progressBar.setVisibility(View.GONE);
                     }
-                    recipeAdapter.updateRecipes(recipes);
-                    updateEmptyState(recipes.isEmpty());
-                    binding.progressBar.setVisibility(View.GONE);
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(requireContext(), "Failed to load favorite recipes", Toast.LENGTH_SHORT).show();
-                    binding.progressBar.setVisibility(View.GONE);
-                    updateEmptyState(true);
+                .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
+                    @Override
+                    public void onFailure(Exception e) {
+                        Toast.makeText(requireContext(), "Failed to load favorite recipes", Toast.LENGTH_SHORT).show();
+                        binding.progressBar.setVisibility(View.GONE);
+                        updateEmptyState(true);
+                    }
                 });
     }
 

@@ -45,8 +45,20 @@ public class ProfileFragment extends Fragment {
     }
 
     private void setupClickListeners() {
-        binding.btnLogout.setOnClickListener(v -> handleLogout());
-        binding.btnChangePassword.setOnClickListener(v -> showChangePasswordDialog());
+        // Set up the logout button
+        binding.btnLogout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handleLogout();
+            }
+        });
+        // Set up the change password button
+        binding.btnChangePassword.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showChangePasswordDialog();
+            }
+        });
     }
 
     private void handleLogout() {
@@ -64,22 +76,28 @@ public class ProfileFragment extends Fragment {
             .setTitle("Change Password")
             .setMessage("Enter your new password:")
             .setView(input)
-            .setPositiveButton("Change", (dialog, which) -> {
-                String newPassword = input.getText().toString().trim();
-                if (newPassword.length() < 6) {
-                    Toast.makeText(requireContext(), "Password must be at least 6 characters", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                FirebaseUser user = firebaseManager.getCurrentUser();
-                if (user != null) {
-                    user.updatePassword(newPassword)
-                        .addOnCompleteListener(task -> {
-                            if (task.isSuccessful()) {
-                                Toast.makeText(requireContext(), "Password updated successfully", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(requireContext(), "Failed to update password", Toast.LENGTH_SHORT).show();
-                            }
-                        });
+            .setPositiveButton("Change", new android.content.DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(android.content.DialogInterface dialog, int which) {
+                    String newPassword = input.getText().toString().trim();
+                    if (newPassword.length() < 6) {
+                        Toast.makeText(requireContext(), "Password must be at least 6 characters", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    FirebaseUser user = firebaseManager.getCurrentUser();
+                    if (user != null) {
+                        user.updatePassword(newPassword)
+                            .addOnCompleteListener(new com.google.android.gms.tasks.OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(com.google.android.gms.tasks.Task<Void> task) {
+                                    if (task.isSuccessful()) {
+                                        Toast.makeText(requireContext(), "Password updated successfully", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Toast.makeText(requireContext(), "Failed to update password", Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                            });
+                    }
                 }
             })
             .setNegativeButton("Cancel", null)

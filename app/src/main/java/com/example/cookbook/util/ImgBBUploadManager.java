@@ -25,41 +25,44 @@ public class ImgBBUploadManager {
         void onError(String error);
     }
 
-    public static void uploadImage(File imageFile, UploadCallback callback) {
-        new Thread(() -> {
-            try {
-                RequestBody requestBody = new MultipartBody.Builder()
-                    .setType(MultipartBody.FORM)
-                    .addFormDataPart("image", imageFile.getName(),
-                        RequestBody.create(MediaType.parse("image/*"), imageFile))
-                    .addFormDataPart("key", BuildConfig.IMGBB_API_KEY)
-                    .build();
+    public static void uploadImage(final File imageFile, final UploadCallback callback) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    RequestBody requestBody = new MultipartBody.Builder()
+                        .setType(MultipartBody.FORM)
+                        .addFormDataPart("image", imageFile.getName(),
+                            RequestBody.create(MediaType.parse("image/*"), imageFile))
+                        .addFormDataPart("key", BuildConfig.IMGBB_API_KEY)
+                        .build();
 
-                Request request = new Request.Builder()
-                    .url(IMGBB_API_URL)
-                    .post(requestBody)
-                    .build();
+                    Request request = new Request.Builder()
+                        .url(IMGBB_API_URL)
+                        .post(requestBody)
+                        .build();
 
-                try (Response response = client.newCall(request).execute()) {
-                    if (!response.isSuccessful()) {
-                        callback.onError("Upload failed: " + response.code());
-                        return;
+                    try (Response response = client.newCall(request).execute()) {
+                        if (!response.isSuccessful()) {
+                            callback.onError("Upload failed: " + response.code());
+                            return;
+                        }
+
+                        String responseBody = response.body().string();
+                        JSONObject json = new JSONObject(responseBody);
+                        
+                        if (json.getBoolean("success")) {
+                            String imageUrl = json.getJSONObject("data")
+                                .getString("url");
+                            callback.onSuccess(imageUrl);
+                        } else {
+                            callback.onError("Upload failed: " + json.getString("error"));
+                        }
                     }
-
-                    String responseBody = response.body().string();
-                    JSONObject json = new JSONObject(responseBody);
-                    
-                    if (json.getBoolean("success")) {
-                        String imageUrl = json.getJSONObject("data")
-                            .getString("url");
-                        callback.onSuccess(imageUrl);
-                    } else {
-                        callback.onError("Upload failed: " + json.getString("error"));
-                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error uploading image", e);
+                    callback.onError(e.getMessage());
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error uploading image", e);
-                callback.onError(e.getMessage());
             }
         }).start();
     }

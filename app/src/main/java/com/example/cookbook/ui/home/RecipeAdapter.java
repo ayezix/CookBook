@@ -72,7 +72,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
             this.binding = binding;
         }
 
-        void bind(Recipe recipe) {
+        void bind(final Recipe recipe) {
             binding.tvTitle.setText(recipe.getTitle());
             binding.tvCategory.setText(recipe.getCategory());
             binding.tvIngredients.setText(recipe.getIngredients().size() + " ingredients");
@@ -86,76 +86,99 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
             binding.ivFavorite.setImageResource(
                 recipe.isFavorite() ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
             );
-            binding.getRoot().setOnClickListener(v -> {
-                if (recipe.isImportedFromApi() && (recipe.getInstructions() == null || recipe.getInstructions().length() < 10 || recipe.getIngredients() == null || recipe.getIngredients().size() <= 1)) {
-                    if (recipe.getId() == null || recipe.getId().isEmpty()) {
-                        Toast.makeText(binding.getRoot().getContext(), "Recipe ID missing, cannot load details", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    Toast.makeText(binding.getRoot().getContext(), "Loading full recipe details...", Toast.LENGTH_SHORT).show();
-                    firebaseManager.fetchFullRecipeById(recipe.getId(), new FirebaseManager.OnRecipesLoadedListener() {
-                        @Override
-                        public void onRecipesLoaded(List<Recipe> recipes) {
-                            if (recipes != null && !recipes.isEmpty()) {
-                                Intent intent = new Intent(binding.getRoot().getContext(), RecipeDetailActivity.class);
-                                intent.putExtra("recipe", recipes.get(0));
-                                binding.getRoot().getContext().startActivity(intent);
-                            } else {
-                                Toast.makeText(binding.getRoot().getContext(), "Recipe details not found", Toast.LENGTH_SHORT).show();
+            binding.getRoot().setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (recipe.isImportedFromApi() && (recipe.getInstructions() == null || recipe.getInstructions().length() < 10 || recipe.getIngredients() == null || recipe.getIngredients().size() <= 1)) {
+                        if (recipe.getId() == null || recipe.getId().isEmpty()) {
+                            Toast.makeText(binding.getRoot().getContext(), "Recipe ID missing, cannot load details", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        Toast.makeText(binding.getRoot().getContext(), "Loading full recipe details...", Toast.LENGTH_SHORT).show();
+                        firebaseManager.fetchFullRecipeById(recipe.getId(), new FirebaseManager.OnRecipesLoadedListener() {
+                            @Override
+                            public void onRecipesLoaded(List<Recipe> recipes) {
+                                if (recipes != null && !recipes.isEmpty()) {
+                                    Intent intent = new Intent(binding.getRoot().getContext(), RecipeDetailActivity.class);
+                                    intent.putExtra("recipe", recipes.get(0));
+                                    binding.getRoot().getContext().startActivity(intent);
+                                } else {
+                                    Toast.makeText(binding.getRoot().getContext(), "Recipe details not found", Toast.LENGTH_SHORT).show();
+                                }
                             }
-                        }
-                        @Override
-                        public void onError(String error) {
-                            Toast.makeText(binding.getRoot().getContext(), "Failed to load recipe details", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } else {
-                    Intent intent = new Intent(binding.getRoot().getContext(), RecipeDetailActivity.class);
-                    intent.putExtra("recipe", recipe);
-                    binding.getRoot().getContext().startActivity(intent);
+                            @Override
+                            public void onError(String error) {
+                                Toast.makeText(binding.getRoot().getContext(), "Failed to load recipe details", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    } else {
+                        Intent intent = new Intent(binding.getRoot().getContext(), RecipeDetailActivity.class);
+                        intent.putExtra("recipe", recipe);
+                        binding.getRoot().getContext().startActivity(intent);
+                    }
                 }
             });
-            binding.ivFavorite.setOnClickListener(v -> {
-                boolean newFavoriteState = !recipe.isFavorite();
-                recipe.setFavorite(newFavoriteState);
-                binding.ivFavorite.setImageResource(
-                    newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
-                );
-                if (recipe.isImportedFromApi() && newFavoriteState) {
-                    firebaseManager.favoriteApiRecipe(recipe)
-                        .addOnSuccessListener(aVoid -> {
-                            Toast.makeText(binding.getRoot().getContext(), 
-                                "Recipe added to favorites", Toast.LENGTH_SHORT).show();
-                            if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
-                        })
-                        .addOnFailureListener(e -> {
-                            recipe.setFavorite(!newFavoriteState);
-                            binding.ivFavorite.setImageResource(
-                                !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
-                            );
-                            Toast.makeText(binding.getRoot().getContext(), 
-                                "Failed to add recipe to favorites", Toast.LENGTH_SHORT).show();
-                        });
-                } else {
-                    firebaseManager.toggleFavoriteRecipe(recipe.getId(), newFavoriteState)
-                        .addOnSuccessListener(aVoid -> {
-                            String message = newFavoriteState ? 
-                                "Recipe added to favorites" : "Recipe removed from favorites";
-                            Toast.makeText(binding.getRoot().getContext(), 
-                                message, Toast.LENGTH_SHORT).show();
-                            if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
-                        })
-                        .addOnFailureListener(e -> {
-                            recipe.setFavorite(!newFavoriteState);
-                            binding.ivFavorite.setImageResource(
-                                !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
-                            );
-                            Toast.makeText(binding.getRoot().getContext(), 
-                                "Failed to update favorite status", Toast.LENGTH_SHORT).show();
-                        });
+            binding.ivFavorite.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    boolean newFavoriteState = !recipe.isFavorite();
+                    recipe.setFavorite(newFavoriteState);
+                    binding.ivFavorite.setImageResource(
+                        newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
+                    );
+                    if (recipe.isImportedFromApi() && newFavoriteState) {
+                        firebaseManager.favoriteApiRecipe(recipe)
+                            .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Toast.makeText(binding.getRoot().getContext(), 
+                                        "Recipe added to favorites", Toast.LENGTH_SHORT).show();
+                                    if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
+                                }
+                            })
+                            .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
+                                @Override
+                                public void onFailure(Exception e) {
+                                    recipe.setFavorite(!newFavoriteState);
+                                    binding.ivFavorite.setImageResource(
+                                        !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
+                                    );
+                                    Toast.makeText(binding.getRoot().getContext(), 
+                                        "Failed to add recipe to favorites", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                    } else {
+                        firebaseManager.toggleFavoriteRecipe(recipe.getId(), newFavoriteState)
+                            .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    String message = newFavoriteState ? 
+                                        "Recipe added to favorites" : "Recipe removed from favorites";
+                                    Toast.makeText(binding.getRoot().getContext(), 
+                                        message, Toast.LENGTH_SHORT).show();
+                                    if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
+                                }
+                            })
+                            .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
+                                @Override
+                                public void onFailure(Exception e) {
+                                    recipe.setFavorite(!newFavoriteState);
+                                    binding.ivFavorite.setImageResource(
+                                        !newFavoriteState ? R.drawable.ic_favorite_alt_filled : R.drawable.ic_favorite_border
+                                    );
+                                    Toast.makeText(binding.getRoot().getContext(), 
+                                        "Failed to update favorite status", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                    }
                 }
             });
-            binding.ivShare.setOnClickListener(v -> showShareOptions(recipe));
+            binding.ivShare.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    showShareOptions(recipe);
+                }
+            });
         }
 
         private void showShareOptions(Recipe recipe) {

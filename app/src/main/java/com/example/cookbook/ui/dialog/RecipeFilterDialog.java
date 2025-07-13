@@ -111,63 +111,86 @@ public class RecipeFilterDialog extends DialogFragment {
     }
     
     private void setupListeners() {
-        binding.radioGroupFilterType.setOnCheckedChangeListener((group, checkedId) -> {
-            // Hide all layouts first
-            binding.layoutCategory.setVisibility(View.GONE);
-            binding.layoutArea.setVisibility(View.GONE);
-            binding.layoutIngredient.setVisibility(View.GONE);
-            binding.layoutDietary.setVisibility(View.GONE);
-            
-            // Show the selected layout
-            if (checkedId == R.id.radioCategory) {
-                binding.layoutCategory.setVisibility(View.VISIBLE);
-            } else if (checkedId == R.id.radioArea) {
-                binding.layoutArea.setVisibility(View.VISIBLE);
-            } else if (checkedId == R.id.radioIngredient) {
-                binding.layoutIngredient.setVisibility(View.VISIBLE);
-            } else if (checkedId == R.id.radioDietary) {
-                binding.layoutDietary.setVisibility(View.VISIBLE);
+        // Listener for filter type radio group
+        binding.radioGroupFilterType.setOnCheckedChangeListener(new android.widget.RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(android.widget.RadioGroup group, int checkedId) {
+                // Hide all layouts first
+                binding.layoutCategory.setVisibility(View.GONE);
+                binding.layoutArea.setVisibility(View.GONE);
+                binding.layoutIngredient.setVisibility(View.GONE);
+                binding.layoutDietary.setVisibility(View.GONE);
+
+                // Show the selected layout
+                if (checkedId == R.id.radioCategory) {
+                    binding.layoutCategory.setVisibility(View.VISIBLE);
+                } else if (checkedId == R.id.radioArea) {
+                    binding.layoutArea.setVisibility(View.VISIBLE);
+                } else if (checkedId == R.id.radioIngredient) {
+                    binding.layoutIngredient.setVisibility(View.VISIBLE);
+                } else if (checkedId == R.id.radioDietary) {
+                    binding.layoutDietary.setVisibility(View.VISIBLE);
+                }
+
+                // Check if we can enable the apply button
+                checkCanEnableApplyButton();
             }
-            
-            // Check if we can enable the apply button
-            checkCanEnableApplyButton();
         });
-        
-        // Enable Apply button when a dietary restriction is selected
-        binding.radioGroupDietary.setOnCheckedChangeListener((group, checkedId) -> {
-            checkCanEnableApplyButton();
+
+        // Listener for dietary radio group
+        binding.radioGroupDietary.setOnCheckedChangeListener(new android.widget.RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(android.widget.RadioGroup group, int checkedId) {
+                checkCanEnableApplyButton();
+            }
         });
-        
-        binding.btnApply.setOnClickListener(v -> applyFilter());
-        binding.btnCancel.setOnClickListener(v -> dismiss());
-        
+
+        // Listener for Apply button
+        binding.btnApply.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                applyFilter();
+            }
+        });
+
+        // Listener for Cancel button
+        binding.btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismiss();
+            }
+        });
+
         // Initially disable apply button until data is loaded
         binding.btnApply.setEnabled(false);
     }
     
     private void loadFilterOptions() {
         // Set a timeout to ensure the dialog loads even if API calls are slow
-        new android.os.Handler().postDelayed(() -> {
-            if (!categoriesLoaded) {
-                android.util.Log.w("RecipeFilterDialog", "Categories loading timeout, using fallback");
-                RecipeFilterDialog.this.categories = getDefaultCategories();
-                categoriesLoaded = true;
-                setupCategorySpinner();
-                checkCanEnableApplyButton();
-            }
-            if (!areasLoaded) {
-                android.util.Log.w("RecipeFilterDialog", "Areas loading timeout, using fallback");
-                RecipeFilterDialog.this.areas = getDefaultAreas();
-                areasLoaded = true;
-                setupAreaSpinner();
-                checkCanEnableApplyButton();
-            }
-            if (!ingredientsLoaded) {
-                android.util.Log.w("RecipeFilterDialog", "Ingredients loading timeout, using fallback");
-                RecipeFilterDialog.this.ingredients = getDefaultIngredients();
-                ingredientsLoaded = true;
-                setupIngredientSpinner();
-                checkCanEnableApplyButton();
+        new android.os.Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (!categoriesLoaded) {
+                    android.util.Log.w("RecipeFilterDialog", "Categories loading timeout, using fallback");
+                    RecipeFilterDialog.this.categories = getDefaultCategories();
+                    categoriesLoaded = true;
+                    setupCategorySpinner();
+                    checkCanEnableApplyButton();
+                }
+                if (!areasLoaded) {
+                    android.util.Log.w("RecipeFilterDialog", "Areas loading timeout, using fallback");
+                    RecipeFilterDialog.this.areas = getDefaultAreas();
+                    areasLoaded = true;
+                    setupAreaSpinner();
+                    checkCanEnableApplyButton();
+                }
+                if (!ingredientsLoaded) {
+                    android.util.Log.w("RecipeFilterDialog", "Ingredients loading timeout, using fallback");
+                    RecipeFilterDialog.this.ingredients = getDefaultIngredients();
+                    ingredientsLoaded = true;
+                    setupIngredientSpinner();
+                    checkCanEnableApplyButton();
+                }
             }
         }, 5000); // 5 second timeout
         

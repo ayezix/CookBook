@@ -95,11 +95,19 @@ public class SimpleFilterDialog extends DialogFragment {
                 break;
         }
         
-        btnApply.setOnClickListener(v -> {
-            android.util.Log.d("SimpleFilterDialog", "Apply button clicked in setupViews");
-            applyFilter();
+        btnApply.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                android.util.Log.d("SimpleFilterDialog", "Apply button clicked in setupViews");
+                applyFilter();
+            }
         });
-        btnCancel.setOnClickListener(v -> dismiss());
+        btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dismiss();
+            }
+        });
         
         // Initially disable apply button
         btnApply.setEnabled(false);

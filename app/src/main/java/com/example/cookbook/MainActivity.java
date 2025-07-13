@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
     }
 
     private void setupLoginScreen() {
+        // Get references to UI elements
         TextInputEditText etEmail = findViewById(R.id.etEmail);
         TextInputEditText etPassword = findViewById(R.id.etPassword);
         TextInputLayout tilEmail = findViewById(R.id.tilEmail);
@@ -51,81 +52,109 @@ public class MainActivity extends AppCompatActivity implements NavigationBarView
         TextView btnForgotPassword = findViewById(R.id.btnForgotPassword);
         ProgressBar progressBar = findViewById(R.id.progressBar);
 
-        btnLogin.setOnClickListener(v -> {
-            String email = etEmail.getText().toString().trim();
-            String password = etPassword.getText().toString().trim();
-            if (validateInput(tilEmail, tilPassword, email, password)) {
-                progressBar.setVisibility(View.VISIBLE);
-                firebaseManager.loginUser(email, password)
-                        .addOnCompleteListener(task -> {
-                            progressBar.setVisibility(View.GONE);
-                            if (task.isSuccessful()) {
-                                Toast.makeText(this, R.string.msg_login_success, Toast.LENGTH_SHORT).show();
-                                showMainAppUI(null);
-                            } else {
-                                String errorMessage;
-                                Exception exception = task.getException();
-                                if (exception != null) {
-                                    errorMessage = exception.getMessage();
+        // Set up login button click
+        btnLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Get email and password from input fields
+                String email = etEmail.getText().toString();
+                email = email.trim();
+                String password = etPassword.getText().toString();
+                password = password.trim();
+                // Validate input
+                if (validateInput(tilEmail, tilPassword, email, password)) {
+                    progressBar.setVisibility(View.VISIBLE);
+                    firebaseManager.loginUser(email, password)
+                        .addOnCompleteListener(new com.google.android.gms.tasks.OnCompleteListener<com.google.firebase.auth.AuthResult>() {
+                            @Override
+                            public void onComplete(com.google.android.gms.tasks.Task<com.google.firebase.auth.AuthResult> task) {
+                                progressBar.setVisibility(View.GONE);
+                                if (task.isSuccessful()) {
+                                    Toast.makeText(MainActivity.this, R.string.msg_login_success, Toast.LENGTH_SHORT).show();
+                                    showMainAppUI(null);
                                 } else {
-                                    errorMessage = getString(R.string.msg_login_failed);
+                                    String errorMessage;
+                                    Exception exception = task.getException();
+                                    if (exception != null) {
+                                        errorMessage = exception.getMessage();
+                                    } else {
+                                        errorMessage = getString(R.string.msg_login_failed);
+                                    }
+                                    Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                                 }
-                                Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
                             }
                         });
+                }
             }
         });
 
-        btnRegister.setOnClickListener(v -> {
-            String email = etEmail.getText().toString().trim();
-            String password = etPassword.getText().toString().trim();
-            if (validateInput(tilEmail, tilPassword, email, password)) {
-                btnLogin.setEnabled(false);
-                btnRegister.setEnabled(false);
-                btnForgotPassword.setEnabled(false);
-                progressBar.setVisibility(View.VISIBLE);
-                firebaseManager.registerUser(email, password)
-                        .addOnCompleteListener(task -> {
-                            btnLogin.setEnabled(true);
-                            btnRegister.setEnabled(true);
-                            btnForgotPassword.setEnabled(true);
-                            progressBar.setVisibility(View.GONE);
-                            if (task.isSuccessful()) {
-                                Toast.makeText(this, R.string.msg_register_success, Toast.LENGTH_SHORT).show();
-                                showMainAppUI(null);
-                            } else {
-                                String errorMessage;
-                                Exception exception = task.getException();
-                                if (exception != null) {
-                                    errorMessage = exception.getMessage();
+        // Set up register button click
+        btnRegister.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String email = etEmail.getText().toString();
+                email = email.trim();
+                String password = etPassword.getText().toString();
+                password = password.trim();
+                if (validateInput(tilEmail, tilPassword, email, password)) {
+                    btnLogin.setEnabled(false);
+                    btnRegister.setEnabled(false);
+                    btnForgotPassword.setEnabled(false);
+                    progressBar.setVisibility(View.VISIBLE);
+                    firebaseManager.registerUser(email, password)
+                        .addOnCompleteListener(new com.google.android.gms.tasks.OnCompleteListener<com.google.firebase.auth.AuthResult>() {
+                            @Override
+                            public void onComplete(com.google.android.gms.tasks.Task<com.google.firebase.auth.AuthResult> task) {
+                                btnLogin.setEnabled(true);
+                                btnRegister.setEnabled(true);
+                                btnForgotPassword.setEnabled(true);
+                                progressBar.setVisibility(View.GONE);
+                                if (task.isSuccessful()) {
+                                    Toast.makeText(MainActivity.this, R.string.msg_register_success, Toast.LENGTH_SHORT).show();
+                                    showMainAppUI(null);
                                 } else {
-                                    errorMessage = getString(R.string.msg_register_failed);
+                                    String errorMessage;
+                                    Exception exception = task.getException();
+                                    if (exception != null) {
+                                        errorMessage = exception.getMessage();
+                                    } else {
+                                        errorMessage = getString(R.string.msg_register_failed);
+                                    }
+                                    Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                                 }
-                                Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
                             }
                         });
+                }
             }
         });
 
-        btnForgotPassword.setOnClickListener(v -> {
-            String email = etEmail.getText().toString().trim();
-            if (email.isEmpty()) {
-                tilEmail.setError("Please enter your email");
-                return;
-            }
-            firebaseManager.sendPasswordResetEmail(email)
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            Toast.makeText(this, "Reset link sent to your email", Toast.LENGTH_LONG).show();
-                        } else {
-                            String errorMessage = "Failed to send reset email";
-                            Exception exception = task.getException();
-                            if (exception != null) {
-                                errorMessage = exception.getMessage();
+        // Set up forgot password click
+        btnForgotPassword.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String email = etEmail.getText().toString();
+                email = email.trim();
+                if (email.isEmpty()) {
+                    tilEmail.setError("Please enter your email");
+                    return;
+                }
+                firebaseManager.sendPasswordResetEmail(email)
+                    .addOnCompleteListener(new com.google.android.gms.tasks.OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(com.google.android.gms.tasks.Task<Void> task) {
+                            if (task.isSuccessful()) {
+                                Toast.makeText(MainActivity.this, "Reset link sent to your email", Toast.LENGTH_LONG).show();
+                            } else {
+                                String errorMessage = "Failed to send reset email";
+                                Exception exception = task.getException();
+                                if (exception != null) {
+                                    errorMessage = exception.getMessage();
+                                }
+                                Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                             }
-                            Toast.makeText(this, errorMessage, Toast.LENGTH_LONG).show();
                         }
                     });
+            }
         });
     }
 

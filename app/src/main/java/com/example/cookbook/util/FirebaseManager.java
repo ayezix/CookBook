@@ -249,16 +249,22 @@ public class FirebaseManager {
         return db.collection(RECIPES_COLLECTION)
                 .whereEqualTo("userId", userId)
                 .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    Log.d(TAG, "getUserRecipes success: found " + querySnapshot.size() + " recipes");
-                    for (QueryDocumentSnapshot document : querySnapshot) {
-                        Log.d(TAG, "Recipe in Firestore: " + document.getId() + " - " + 
-                            document.getString("title") + " (userId: " + document.getString("userId") + ")");
+                .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot querySnapshot) {
+                        Log.d(TAG, "getUserRecipes success: found " + querySnapshot.size() + " recipes");
+                        for (QueryDocumentSnapshot document : querySnapshot) {
+                            Log.d(TAG, "Recipe in Firestore: " + document.getId() + " - " + 
+                                document.getString("title") + " (userId: " + document.getString("userId") + ")");
+                        }
                     }
                 })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "getUserRecipes failed", e);
-                    Log.e(TAG, "Error details: " + e.getMessage());
+                .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e(TAG, "getUserRecipes failed", e);
+                        Log.e(TAG, "Error details: " + e.getMessage());
+                    }
                 });
     }
 

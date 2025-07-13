@@ -83,9 +83,24 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
     }
 
     private void setupClickListeners() {
-        binding.btnAddIngredient.setOnClickListener(v -> addIngredient());
-        binding.btnUploadImage.setOnClickListener(v -> selectImage());
-        binding.btnSave.setOnClickListener(v -> saveRecipe());
+        binding.btnAddIngredient.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addIngredient();
+            }
+        });
+        binding.btnUploadImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                selectImage();
+            }
+        });
+        binding.btnSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveRecipe();
+            }
+        });
     }
 
     private void addIngredient() {
@@ -180,13 +195,19 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
             editingRecipe.setIngredients(ingredients);
             if (selectedImageUri != null) {
                 firebaseManager.uploadRecipeImage(selectedImageUri)
-                    .addOnSuccessListener(imageUrl -> {
-                        editingRecipe.setImageUrl(imageUrl);
-                        updateRecipeInFirestore(editingRecipe);
+                    .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<String>() {
+                        @Override
+                        public void onSuccess(String imageUrl) {
+                            editingRecipe.setImageUrl(imageUrl);
+                            updateRecipeInFirestore(editingRecipe);
+                        }
                     })
-                    .addOnFailureListener(e -> {
-                        binding.progressBar.setVisibility(View.GONE);
-                        Toast.makeText(this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
+                        @Override
+                        public void onFailure(Exception e) {
+                            binding.progressBar.setVisibility(View.GONE);
+                            Toast.makeText(AddRecipeActivity.this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
                     });
             } else {
                 updateRecipeInFirestore(editingRecipe);
@@ -206,13 +227,19 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
             if (selectedImageUri != null) {
                 // Upload image first
                 firebaseManager.uploadRecipeImage(selectedImageUri)
-                    .addOnSuccessListener(imageUrl -> {
-                        recipe.setImageUrl(imageUrl);
-                        saveRecipeToFirestore(recipe);
+                    .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<String>() {
+                        @Override
+                        public void onSuccess(String imageUrl) {
+                            recipe.setImageUrl(imageUrl);
+                            saveRecipeToFirestore(recipe);
+                        }
                     })
-                    .addOnFailureListener(e -> {
-                        binding.progressBar.setVisibility(View.GONE);
-                        Toast.makeText(this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
+                        @Override
+                        public void onFailure(Exception e) {
+                            binding.progressBar.setVisibility(View.GONE);
+                            Toast.makeText(AddRecipeActivity.this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
                     });
             } else {
                 saveRecipeToFirestore(recipe);
@@ -222,13 +249,19 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
 
     private void updateRecipeInFirestore(Recipe recipe) {
         firebaseManager.updateRecipe(recipe)
-            .addOnSuccessListener(aVoid -> {
-                Toast.makeText(this, "Recipe updated successfully", Toast.LENGTH_SHORT).show();
-                finish();
+            .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<Void>() {
+                @Override
+                public void onSuccess(Void aVoid) {
+                    Toast.makeText(AddRecipeActivity.this, "Recipe updated successfully", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
             })
-            .addOnFailureListener(e -> {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(this, "Failed to update recipe", Toast.LENGTH_SHORT).show();
+            .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
+                @Override
+                public void onFailure(Exception e) {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(AddRecipeActivity.this, "Failed to update recipe", Toast.LENGTH_SHORT).show();
+                }
             });
     }
 
@@ -237,17 +270,23 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         // Ensure the recipe is marked as user-created (not imported from API)
         recipe.setImportedFromApi(false);
         firebaseManager.addRecipe(recipe)
-                .addOnSuccessListener(documentReference -> {
-                    Log.d("AddRecipeActivity", "Recipe saved successfully with ID: " + documentReference.getId());
-                    Toast.makeText(this, R.string.msg_recipe_saved, Toast.LENGTH_SHORT).show();
-                    // Set result to indicate recipe was added
-                    setResult(RESULT_OK);
-                    finish();
+                .addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<com.google.firebase.firestore.DocumentReference>() {
+                    @Override
+                    public void onSuccess(com.google.firebase.firestore.DocumentReference documentReference) {
+                        Log.d("AddRecipeActivity", "Recipe saved successfully with ID: " + documentReference.getId());
+                        Toast.makeText(AddRecipeActivity.this, R.string.msg_recipe_saved, Toast.LENGTH_SHORT).show();
+                        // Set result to indicate recipe was added
+                        setResult(RESULT_OK);
+                        finish();
+                    }
                 })
-                .addOnFailureListener(e -> {
-                    Log.e("AddRecipeActivity", "Failed to save recipe", e);
-                    binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(this, R.string.msg_recipe_save_failed, Toast.LENGTH_SHORT).show();
+                .addOnFailureListener(new com.google.android.gms.tasks.OnFailureListener() {
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e("AddRecipeActivity", "Failed to save recipe", e);
+                        binding.progressBar.setVisibility(View.GONE);
+                        Toast.makeText(AddRecipeActivity.this, R.string.msg_recipe_save_failed, Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 

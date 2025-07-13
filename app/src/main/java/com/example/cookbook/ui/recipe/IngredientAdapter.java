@@ -60,19 +60,27 @@ public class IngredientAdapter extends RecyclerView.Adapter<IngredientAdapter.In
             this.binding = binding;
         }
 
-        void bind(Ingredient ingredient, int position) {
+        void bind(final Ingredient ingredient, final int position) {
             binding.tvIngredientName.setText(ingredient.getName());
             binding.tvIngredientAmount.setText(ingredient.getAmount() + " " + ingredient.getUnit());
 
-            binding.btnEditIngredient.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onEditIngredient(ingredient, position);
+            // Set up the edit button click listener
+            binding.btnEditIngredient.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null) {
+                        listener.onEditIngredient(ingredient, position);
+                    }
                 }
             });
 
-            binding.btnDeleteIngredient.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onDeleteIngredient(position);
+            // Set up the delete button click listener
+            binding.btnDeleteIngredient.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (listener != null) {
+                        listener.onDeleteIngredient(position);
+                    }
                 }
             });
         }

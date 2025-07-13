@@ -70,8 +70,12 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
     }
 
     private void setupRecyclerView() {
-        recipeAdapter = new RecipeAdapter(new ArrayList<>(), recipe -> {
-            // No-op: handled in RecipeAdapter now
+        // Set up the adapter for the RecyclerView
+        recipeAdapter = new RecipeAdapter(new ArrayList<>(), new RecipeAdapter.OnRecipeClickListener() {
+            @Override
+            public void onRecipeClick(Recipe recipe) {
+                // No-op: handled in RecipeAdapter now
+            }
         }, new RecipeAdapter.OnFavoriteChangedListener() {
             @Override
             public void onFavoriteChanged() {
@@ -84,6 +88,7 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
     }
 
     private void setupSearchView() {
+        // Set up the search view listeners
         binding.searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -203,10 +208,27 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
     }
 
     private void setupClickListeners() {
-        binding.fabAddRecipe.setOnClickListener(v -> 
-            startActivityForResult(new Intent(requireContext(), AddRecipeActivity.class), 1001));
-        binding.btnFilter.setOnClickListener(v -> showFilterDialogWithOptions());
-        binding.btnClearFilter.setOnClickListener(v -> clearFilter());
+        // Set up the floating action button to add a recipe
+        binding.fabAddRecipe.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityForResult(new Intent(requireContext(), AddRecipeActivity.class), 1001);
+            }
+        });
+        // Set up the filter button
+        binding.btnFilter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showFilterDialogWithOptions();
+            }
+        });
+        // Set up the clear filter button
+        binding.btnClearFilter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearFilter();
+            }
+        });
     }
 
     private void showFilterDialogWithOptions() {
