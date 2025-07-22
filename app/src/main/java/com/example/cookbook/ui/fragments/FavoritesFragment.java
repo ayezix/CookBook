@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.favorites;
+package com.example.cookbook.ui.fragments;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.cookbook.databinding.FragmentFavoritesBinding;
 import com.example.cookbook.model.Recipe;
-import com.example.cookbook.ui.home.RecipeAdapter;
+import com.example.cookbook.ui.fragments.RecipeAdapter;
 import com.example.cookbook.util.FirebaseManager;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -48,14 +48,9 @@ public class FavoritesFragment extends Fragment {
 
     private void setupRecyclerView() {
         // Set up the adapter for the RecyclerView
-        recipeAdapter = new RecipeAdapter(new ArrayList<>(), new RecipeAdapter.OnRecipeClickListener() {
+        recipeAdapter = new RecipeAdapter(requireContext(), new ArrayList<>(), new RecipeAdapter.OnFavoriteChangedListener() {
             @Override
-            public void onRecipeClick(Recipe recipe) {
-                // Recipe click handled in RecipeAdapter
-            }
-        }, new RecipeAdapter.OnFavoriteChangedListener() {
-            @Override
-            public void onFavoriteChanged() {
+            public void onFavoriteChanged(Recipe recipe, boolean isFavorite) {
                 loadFavoriteRecipes();
             }
         });

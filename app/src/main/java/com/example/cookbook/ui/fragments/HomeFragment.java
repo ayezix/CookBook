@@ -1,5 +1,6 @@
-package com.example.cookbook.ui.home;
+package com.example.cookbook.ui.fragments;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -18,7 +19,7 @@ import com.example.cookbook.databinding.FragmentHomeBinding;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.model.RecipeFilter;
 import com.example.cookbook.ui.dialog.RecipeFilterDialog;
-import com.example.cookbook.ui.recipe.AddRecipeActivity;
+import com.example.cookbook.ui.activities.AddRecipeActivity;
 import com.example.cookbook.util.FirebaseManager;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -28,33 +29,113 @@ import java.util.List;
 import com.example.cookbook.api.model.CategoryResponse;
 import com.example.cookbook.api.model.AreaResponse;
 import com.example.cookbook.api.model.IngredientResponse;
+import com.example.cookbook.ui.fragments.RecipeAdapter;
 
+/**
+ * HomeFragment - Main home screen for the CookBook application.
+ * 
+ * This fragment serves as the primary interface for recipe management and discovery.
+ * It displays the user's recipes, provides search functionality, and integrates
+ * with external APIs for recipe discovery.
+ * 
+ * Key Features:
+ * - Display user's personal recipes
+ * - Real-time search functionality (local and online)
+ * - Advanced filtering by category, area, and ingredients
+ * - Integration with TheMealDB API for recipe discovery
+ * - Recipe creation via floating action button
+ * - Favorite management
+ * 
+ * Data Flow:
+ * 1. Loads user's recipes from Firebase on startup
+ * 2. Handles search queries (local first, then API)
+ * 3. Applies filters from RecipeFilterDialog
+ * 4. Updates UI based on search/filter results
+ * 5. Manages recipe list display and empty states
+ */
 public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilterAppliedListener {
+    
+    /** View binding for the fragment layout */
     private FragmentHomeBinding binding;
+    
+    /** Firebase manager for data operations */
     private FirebaseManager firebaseManager;
+    
+    /** Adapter for displaying recipes in RecyclerView */
     private RecipeAdapter recipeAdapter;
+    
+    /** Complete list of user's recipes (cached) */
     private List<Recipe> allRecipes = new ArrayList<>();
-    // Store current filter and search query
+    
+    // Search and filter state
+    /** Current active filter (null if no filter applied) */
     private RecipeFilter currentFilter = null;
+    
+    /** Current search query (empty string if no search) */
     private String currentSearchQuery = "";
 
-    // Add fields to store filter options
+    // Filter options cache
+    /** Available categories for filtering (loaded from API) */
     private ArrayList<CategoryResponse.Category> filterCategories = new ArrayList<>();
+    
+    /** Available areas/cuisines for filtering (loaded from API) */
     private ArrayList<AreaResponse.Area> filterAreas = new ArrayList<>();
+    
+    /** Available ingredients for filtering (loaded from API) */
     private ArrayList<IngredientResponse.Ingredient> filterIngredients = new ArrayList<>();
+    
+    /** Whether filter options have been loaded from API */
     private boolean filterOptionsLoaded = false;
 
+    // 1. Add ActivityResultLauncher field
+    private androidx.activity.result.ActivityResultLauncher<Intent> addRecipeLauncher;
+
+    /**
+     * Creates the fragment's view hierarchy.
+     * 
+     * This method inflates the fragment_home layout using ViewBinding
+     * and returns the root view.
+     * 
+     * @param inflater LayoutInflater for inflating the view
+     * @param container Parent view group
+     * @param savedInstanceState Saved state bundle
+     * @return The inflated view
+     */
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
 
+    /**
+     * Sets up the fragment after view creation.
+     * 
+     * This method initializes all components:
+     * - Gets FirebaseManager instance
+     * - Sets up RecyclerView with adapter
+     * - Configures SearchView functionality
+     * - Sets up click listeners
+     * - Loads initial recipe data
+     * 
+     * @param view The fragment's view
+     * @param savedInstanceState Saved state bundle
+     */
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         
         firebaseManager = FirebaseManager.getInstance();
+        // Register the ActivityResultLauncher
+        addRecipeLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    // Recipe was added successfully, reload recipes
+                    android.util.Log.d("HomeFragment", "Recipe added, reloading recipes");
+                    loadRecipes();
+                }
+            }
+        );
         setupRecyclerView();
         setupSearchView();
         setupClickListeners();
@@ -62,6 +143,12 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         loadRecipes();
     }
 
+    /**
+     * Called when the fragment becomes visible to the user.
+     * 
+     * This method reloads recipes from Firebase to ensure the display
+     * is up-to-date with any changes made in other parts of the app.
+     */
     @Override
     public void onResume() {
         super.onResume();
@@ -69,17 +156,28 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         loadRecipes();
     }
 
+    /**
+     * Sets up the RecyclerView for displaying recipes.
+     * 
+     * This method:
+     * - Creates RecipeAdapter with empty list and favorite change listener
+     * - Sets LinearLayoutManager for vertical scrolling
+     * - Assigns adapter to RecyclerView
+     */
     private void setupRecyclerView() {
         // Set up the adapter for the RecyclerView
-        recipeAdapter = new RecipeAdapter(new ArrayList<>(), new RecipeAdapter.OnRecipeClickListener() {
+        recipeAdapter = new RecipeAdapter(requireContext(), new ArrayList<>(), new RecipeAdapter.OnFavoriteChangedListener() {
             @Override
-            public void onRecipeClick(Recipe recipe) {
-                // No-op: handled in RecipeAdapter now
-            }
-        }, new RecipeAdapter.OnFavoriteChangedListener() {
-            @Override
-            public void onFavoriteChanged() {
-                loadRecipes(); // Reload user recipes from Firebase
+            public void onFavoriteChanged(Recipe recipe, boolean isFavorite) {
+                // Update the recipe in our local list
+                for (int i = 0; i < allRecipes.size(); i++) {
+                    if (allRecipes.get(i).getId().equals(recipe.getId())) {
+                        allRecipes.get(i).setFavorite(isFavorite);
+                        break;
+                    }
+                }
+                // Update the display
+                updateRecipeList(allRecipes);
             }
         });
         
@@ -87,6 +185,15 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         binding.recyclerView.setAdapter(recipeAdapter);
     }
 
+    /**
+     * Sets up the SearchView functionality.
+     * 
+     * This method configures:
+     * - Query submission handling
+     * - Real-time search (after 2 characters)
+     * - Search clearing functionality
+     * - Integration with filter system
+     */
     private void setupSearchView() {
         // Set up the search view listeners
         binding.searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -125,48 +232,17 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         });
     }
 
-    private void searchRecipes(String query) {
-        binding.progressBar.setVisibility(View.VISIBLE);
-        
-        // First search local recipes
-        firebaseManager.searchRecipesByName(query)
-            .addOnSuccessListener(queryDocumentSnapshots -> {
-                List<Recipe> localRecipes = new ArrayList<>();
-                for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                    Recipe recipe = document.toObject(Recipe.class);
-                    recipe.setId(document.getId());
-                    localRecipes.add(recipe);
-                }
-                
-                // If no local recipes found, search online
-                if (localRecipes.isEmpty()) {
-                    searchOnlineRecipes(query);
-                } else {
-                    updateRecipeList(localRecipes);
-                }
-            })
-            .addOnFailureListener(e -> {
-                android.util.Log.e("HomeFragment", "Failed to search local recipes", e);
-                Toast.makeText(requireContext(), "Failed to search local recipes: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                binding.progressBar.setVisibility(View.GONE);
-            });
-    }
-
-    private void searchOnlineRecipes(String query) {
-        firebaseManager.searchOnlineRecipes(query, new FirebaseManager.OnRecipesLoadedListener() {
-            @Override
-            public void onRecipesLoaded(List<Recipe> recipes) {
-                updateRecipeList(recipes);
-            }
-
-            @Override
-            public void onError(String error) {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
+    /**
+     * Updates the displayed recipe list based on current state.
+     * 
+     * This method filters and validates recipes based on:
+     * - Current search query
+     * - Active filter
+     * - Recipe validity (title, ingredients)
+     * - User ownership (for non-search results)
+     * 
+     * @param recipes List of recipes to process and display
+     */
     private void updateRecipeList(List<Recipe> recipes) {
         android.util.Log.d("HomeFragment", "updateRecipeList called with " + recipes.size() + " recipes, currentSearchQuery: " + currentSearchQuery + ", currentFilter: " + (currentFilter != null ? currentFilter.getType() + "=" + currentFilter.getValue() : "null"));
         if (binding == null) {
@@ -207,12 +283,21 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         updateEmptyState(validRecipes.isEmpty());
     }
 
+    /**
+     * Sets up click listeners for UI elements.
+     * 
+     * This method configures:
+     * - Floating action button for adding recipes
+     * - Filter button for opening filter dialog
+     * - Clear filter button for removing active filters
+     */
     private void setupClickListeners() {
         // Set up the floating action button to add a recipe
         binding.fabAddRecipe.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivityForResult(new Intent(requireContext(), AddRecipeActivity.class), 1001);
+                Intent intent = new Intent(requireContext(), AddRecipeActivity.class);
+                addRecipeLauncher.launch(intent);
             }
         });
         // Set up the filter button
@@ -231,12 +316,23 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
         });
     }
 
+    /**
+     * Shows the filter dialog with loaded options.
+     * 
+     * This method:
+     * - Shows progress indicator
+     * - Loads categories, areas, and ingredients from API
+     * - Displays RecipeFilterDialog when all options are loaded
+     * - Handles loading errors gracefully
+     */
     private void showFilterDialogWithOptions() {
         binding.progressBar.setVisibility(View.VISIBLE);
         filterOptionsLoaded = false;
         filterCategories.clear();
         filterAreas.clear();
         filterIngredients.clear();
+        
+        // Load categories from API
         firebaseManager.getCategories(new FirebaseManager.OnCategoriesLoadedListener() {
             @Override
             public void onCategoriesLoaded(List<CategoryResponse.Category> categories) {
@@ -472,26 +568,6 @@ public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilte
                 }
             }
         });
-    }
-
-    private String getFilterTypeName(RecipeFilter.FilterType type) {
-        switch (type) {
-            case CATEGORY: return "Category";
-            case AREA: return "Cuisine";
-            case INGREDIENT: return "Ingredient";
-            case SEARCH: return "Search";
-            default: return "Filter";
-        }
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1001 && resultCode == android.app.Activity.RESULT_OK) {
-            // Recipe was added successfully, reload recipes
-            android.util.Log.d("HomeFragment", "Recipe added, reloading recipes");
-            loadRecipes();
-        }
     }
 
     @Override

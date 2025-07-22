@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.recipe;
+package com.example.cookbook.ui.activities;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -43,6 +43,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
     private boolean isEditMode = false;
     private IngredientAdapter ingredientAdapter;
     private int editingIngredientPosition = -1;
+    private androidx.activity.result.ActivityResultLauncher<Intent> imagePickerLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +59,18 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         setupSpinner();
         setupRecyclerView();
         setupClickListeners();
+
+        // Register the ActivityResultLauncher for image picking
+        imagePickerLauncher = registerForActivityResult(
+            new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null && result.getData().getData() != null) {
+                    selectedImageUri = result.getData().getData();
+                    binding.ivRecipe.setImageURI(selectedImageUri);
+                    binding.ivRecipe.setVisibility(View.VISIBLE);
+                }
+            }
+        );
 
         // Handle edit mode
         Intent intent = getIntent();
@@ -137,17 +150,7 @@ public class AddRecipeActivity extends AppCompatActivity implements IngredientAd
         Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent, "Select Recipe Image"), PICK_IMAGE_REQUEST);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            selectedImageUri = data.getData();
-            binding.ivRecipe.setImageURI(selectedImageUri);
-            binding.ivRecipe.setVisibility(View.VISIBLE);
-        }
+        imagePickerLauncher.launch(Intent.createChooser(intent, "Select Recipe Image"));
     }
 
     private void prefillFieldsForEdit(Recipe recipe) {

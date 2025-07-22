@@ -1,7 +1,6 @@
 package com.example.cookbook.api.model;
 
 import com.google.gson.annotations.SerializedName;
-import java.util.List;
 
 public class ApiRecipe {
     @SerializedName("idMeal")
@@ -158,10 +157,4 @@ public class ApiRecipe {
     public String getMeasure18() { return measure18; }
     public String getMeasure19() { return measure19; }
     public String getMeasure20() { return measure20; }
-
-
-    public List<String> getDishTypes() { 
-        // Return category as a list for compatibility
-        return category != null ? List.of(category) : List.of("Other"); 
-    }
 } 

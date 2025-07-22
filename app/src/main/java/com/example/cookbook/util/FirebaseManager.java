@@ -74,7 +74,7 @@ public class FirebaseManager {
         try {
             auth = FirebaseAuth.getInstance();
             db = FirebaseFirestore.getInstance();
-            context = CookBookApplication.getInstance();
+            context = CookBookApplication.getAppContext();
             Log.d(TAG, "Firebase services initialized successfully");
         } catch (Exception e) {
             Log.e(TAG, "Error initializing Firebase services", e);
