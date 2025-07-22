@@ -1,0 +1,1049 @@
+CookBook Android Application - Comprehensive Study Guide
+
+Table of Contents
+1. Application Overview
+2. Technical Architecture
+3. Project Structure
+4. Core Components
+5. Data Models
+6. User Interface Components
+7. Firebase Integration
+8. API Integration
+9. Method Review
+10. User Workflows
+11. Configuration & Setup
+12. Testing & Deployment
+
+---
+
+Application Overview
+
+What is CookBook?
+CookBook is a comprehensive Android recipe management application that allows users to:
+- Create, edit, and manage personal recipes
+- Discover recipes from TheMealDB external API
+- Save favorite recipes locally
+- Search and filter recipes by various criteria
+- Upload recipe images
+- Share recipes with others
+
+Key Features
+- User Authentication: Secure login/registration with Firebase
+- Recipe Management: CRUD operations for personal recipes
+- Recipe Discovery: Browse external recipe database
+- Search & Filtering: Advanced search capabilities
+- Image Management: Upload and store recipe images
+- Favorites System: Save and organize favorite recipes
+- Modern UI: Material Design with intuitive navigation
+
+---
+
+Technical Architecture
+
+Architecture Pattern
+The application follows the MVVM (Model-View-ViewModel) architecture pattern with Repository pattern:
+
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│      View       │    │   ViewModel      │    │     Model       │
+│   (Activities   │◄──►│   (Business      │◄──►│  (Data Models   │
+│   & Fragments)  │    │    Logic)        │    │   & Repository) │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   UI Layer      │    │  Business Layer  │    │   Data Layer    │
+│ - Activities    │    │ - FirebaseManager│    │ - Firebase      │
+│ - Fragments     │    │ - API Services   │    │ - External APIs │
+│ - Adapters      │    │ - Data Processing│    │ - Local Storage │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+
+Technology Stack
+- Language: Java
+- Minimum SDK: API 24 (Android 7.0)
+- Target SDK: API 34 (Android 14)
+- Backend: Firebase (Authentication, Firestore)
+- External APIs: TheMealDB, ImgBB
+- Networking: Retrofit, OkHttp
+- Image Loading: Glide
+- UI Framework: Android Views with Data Binding
+
+---
+
+Project Structure
+
+CookBook/
+├── app/
+│   ├── build.gradle                 # App-level dependencies
+│   ├── src/main/
+│   │   ├── java/com/example/cookbook/
+│   │   │   ├── api/                 # API client and models
+│   │   │   │   ├── ApiClient.java
+│   │   │   │   ├── RecipeApiService.java
+│   │   │   │   └── model/
+│   │   │   │       ├── ApiRecipe.java
+│   │   │   │       ├── ApiRecipeResponse.java
+│   │   │   │       ├── CategoryResponse.java
+│   │   │   │       ├── AreaResponse.java
+│   │   │   │       └── IngredientResponse.java
+│   │   │   ├── data/                # Data layer
+│   │   │   │   ├── model/
+│   │   │   │   └── repository/
+│   │   │   ├── model/               # Core data models
+│   │   │   │   ├── Recipe.java
+│   │   │   │   ├── Ingredient.java
+│   │   │   │   ├── User.java
+│   │   │   │   └── RecipeFilter.java
+│   │   │   ├── ui/                  # User interface components
+│   │   │   │   ├── dialog/
+│   │   │   │   │   ├── RecipeFilterDialog.java
+│   │   │   │   │   └── SimpleFilterDialog.java
+│   │   │   │   ├── favorites/
+│   │   │   │   │   └── FavoritesFragment.java
+│   │   │   │   ├── home/
+│   │   │   │   │   ├── HomeFragment.java
+│   │   │   │   │   └── RecipeAdapter.java
+│   │   │   │   ├── profile/
+│   │   │   │   │   └── ProfileFragment.java
+│   │   │   │   └── recipe/
+│   │   │   │       ├── AddRecipeActivity.java
+│   │   │   │       ├── IngredientAdapter.java
+│   │   │   │       └── RecipeDetailActivity.java
+│   │   │   ├── util/                # Utility classes
+│   │   │   │   ├── FirebaseManager.java
+│   │   │   │   └── ImgBBUploadManager.java
+│   │   │   ├── CookBookApplication.java
+│   │   │   └── MainActivity.java
+│   │   ├── res/                     # Resources
+│   │   │   ├── drawable/            # Images and icons
+│   │   │   ├── layout/              # UI layouts
+│   │   │   ├── values/              # Strings, colors, themes
+│   │   │   ├── menu/                # Menu resources
+│   │   │   ├── navigation/          # Navigation graphs
+│   │   │   └── xml/                 # Configuration files
+│   │   └── AndroidManifest.xml
+│   └── proguard-rules.pro
+├── build.gradle                     # Project-level configuration
+├── gradle.properties
+├── settings.gradle
+└── README.md
+
+---
+
+Core Components
+
+1. MainActivity.java
+Location: app/src/main/java/com/example/cookbook/MainActivity.java
+
+Purpose: Main entry point of the application that handles:
+- User authentication flow
+- Navigation between login and main app UI
+- Bottom navigation setup
+
+Key Responsibilities:
+- Check user authentication status on app launch
+- Display login/register screen for unauthenticated users
+- Show main app interface for authenticated users
+- Handle navigation between different app sections
+
+2. CookBookApplication.java
+Location: app/src/main/java/com/example/cookbook/CookBookApplication.java
+
+Purpose: Application class that provides global context and initialization
+
+3. FirebaseManager.java
+Location: app/src/main/java/com/example/cookbook/util/FirebaseManager.java
+
+Purpose: Centralized manager for all Firebase operations including:
+- User authentication
+- Recipe CRUD operations
+- Image upload management
+- External API integration
+
+---
+
+Data Models
+
+1. Recipe.java
+Location: app/src/main/java/com/example/cookbook/model/Recipe.java
+
+Purpose: Core data model representing a recipe in the application
+
+Properties:
+- id: Unique identifier
+- title: Recipe name
+- category: Recipe category (Breakfast, Dinner, etc.)
+- ingredients: List of ingredients
+- instructions: Cooking instructions
+- imageUrl: URL to recipe image
+- userId: ID of recipe creator
+- favorite: Whether recipe is favorited
+- createdAt: Creation timestamp
+- importedFromApi: Whether recipe came from external API
+
+Key Methods:
+- Constructors for creating new recipes
+- Getters and setters for all properties
+- Serializable implementation for data transfer
+
+2. Ingredient.java
+Location: app/src/main/java/com/example/cookbook/model/Ingredient.java
+
+Purpose: Represents an ingredient in a recipe
+
+Properties:
+- name: Ingredient name
+- amount: Quantity
+- unit: Unit of measurement
+- isCustom: Whether it's a custom ingredient
+
+3. User.java
+Location: app/src/main/java/com/example/cookbook/model/User.java
+
+Purpose: Represents a user in the system
+
+4. RecipeFilter.java
+Location: app/src/main/java/com/example/cookbook/model/RecipeFilter.java
+
+Purpose: Defines filtering criteria for recipe searches
+
+---
+
+User Interface Components
+
+1. Layout Files
+
+activity_main.xml
+Location: app/src/main/res/layout/activity_main.xml
+
+Purpose: Login/registration screen layout
+
+Components:
+- App title
+- Email input field with validation
+- Password input field with toggle visibility
+- Login button
+- Register button
+- Forgot password link
+- Progress bar for loading states
+
+main_app.xml
+Location: app/src/main/res/layout/main_app.xml
+
+Purpose: Main application layout with navigation
+
+Components:
+- Fragment container for dynamic content
+- Bottom navigation view with menu items
+
+fragment_home.xml
+Location: app/src/main/res/layout/fragment_home.xml
+
+Purpose: Home screen layout
+
+Components:
+- Search view for recipe search
+- Filter button
+- Clear filter button
+- RecyclerView for recipe list
+- Floating action button for adding recipes
+- Progress bar
+- Empty state view
+
+activity_add_recipe.xml
+Location: app/src/main/res/layout/activity_add_recipe.xml
+
+Purpose: Recipe creation/editing screen
+
+Components:
+- Toolbar with back button
+- Recipe title input
+- Category spinner
+- Instructions text area
+- Ingredient management section
+- Image upload section
+- Save button
+
+2. Fragments
+
+HomeFragment.java
+Location: app/src/main/java/com/example/cookbook/ui/home/HomeFragment.java
+
+Purpose: Main home screen that displays recipes and handles search/filtering
+
+Key Features:
+- Display user's recipes
+- Search functionality (local and online)
+- Filter recipes by category, area, or ingredient
+- Integration with external API
+- Recipe list management
+
+FavoritesFragment.java
+Location: app/src/main/java/com/example/cookbook/ui/favorites/FavoritesFragment.java
+
+Purpose: Displays user's favorite recipes
+
+ProfileFragment.java
+Location: app/src/main/java/com/example/cookbook/ui/profile/ProfileFragment.java
+
+Purpose: User profile management
+
+3. Activities
+
+AddRecipeActivity.java
+Location: app/src/main/java/com/example/cookbook/ui/recipe/AddRecipeActivity.java
+
+Purpose: Handles recipe creation and editing
+
+Features:
+- Form validation
+- Image upload
+- Ingredient management
+- Edit mode support
+
+RecipeDetailActivity.java
+Location: app/src/main/java/com/example/cookbook/ui/recipe/RecipeDetailActivity.java
+
+Purpose: Displays detailed recipe information
+
+4. Adapters
+
+RecipeAdapter.java
+Location: app/src/main/java/com/example/cookbook/ui/home/RecipeAdapter.java
+
+Purpose: Manages recipe list display in RecyclerView
+
+Features:
+- Recipe item layout
+- Click handling
+- Favorite toggle functionality
+- Image loading with Glide
+
+IngredientAdapter.java
+Location: app/src/main/java/com/example/cookbook/ui/recipe/IngredientAdapter.java
+
+Purpose: Manages ingredient list in recipe creation
+
+---
+
+Firebase Integration
+
+FirebaseManager.java - Detailed Analysis
+
+Location: app/src/main/java/com/example/cookbook/util/FirebaseManager.java
+
+Purpose: Centralized manager for all Firebase operations
+
+Key Collections:
+- users: User profiles
+- recipes: Recipe data
+
+Authentication Methods:
+
+registerUser(String email, String password)
+Purpose: Creates new user account
+Process:
+1. Creates Firebase Auth user
+2. Creates user document in Firestore
+3. Handles error translation
+Usage: Called from MainActivity during registration
+
+loginUser(String email, String password)
+Purpose: Authenticates existing user
+Process:
+1. Validates credentials with Firebase Auth
+2. Translates errors to user-friendly messages
+Usage: Called from MainActivity during login
+
+logoutUser()
+Purpose: Signs out current user
+Process: Calls Firebase Auth signOut()
+Usage: Called from ProfileFragment
+
+sendPasswordResetEmail(String email)
+Purpose: Sends password reset email
+Process:
+1. Validates email format
+2. Sends reset email via Firebase
+3. Handles error cases
+Usage: Called from MainActivity forgot password
+
+Recipe Management Methods:
+
+addRecipe(Recipe recipe)
+Purpose: Saves new recipe to Firestore
+Process:
+1. Sets current user ID
+2. Adds recipe to recipes collection
+3. Logs success/failure
+Usage: Called from AddRecipeActivity
+
+getUserRecipes()
+Purpose: Retrieves current user's recipes
+Process:
+1. Gets current user ID
+2. Queries recipes collection by userId
+3. Returns QuerySnapshot
+Usage: Called from HomeFragment
+
+updateRecipe(Recipe recipe)
+Purpose: Updates existing recipe
+Process: Updates document in Firestore
+Usage: Called from AddRecipeActivity in edit mode
+
+deleteRecipe(String recipeId)
+Purpose: Removes recipe from Firestore
+Process: Deletes document and removes from favorites
+Usage: Called from recipe detail screens
+
+Search Methods:
+
+searchRecipesByName(String query)
+Purpose: Searches recipes by title
+Process:
+1. Converts query to lowercase
+2. Uses Firestore range queries
+3. Filters by current user
+Usage: Called from HomeFragment search
+
+searchRecipesByCategory(String category)
+Purpose: Filters recipes by category
+Process: Queries recipes collection by category and user
+Usage: Called from filter dialogs
+
+searchRecipesByIngredient(String ingredient)
+Purpose: Finds recipes containing specific ingredient
+Process: Uses Firestore array-contains query
+Usage: Called from filter dialogs
+
+Favorite Management:
+
+toggleFavoriteRecipe(String recipeId, boolean isFavorite)
+Purpose: Updates recipe favorite status
+Process: Updates favorite field in Firestore
+Usage: Called from RecipeAdapter
+
+getFavoriteRecipes()
+Purpose: Retrieves user's favorite recipes
+Process: Queries recipes by userId and favorite=true
+Usage: Called from FavoritesFragment
+
+Image Upload:
+
+uploadRecipeImage(Uri imageUri)
+Purpose: Uploads image to ImgBB
+Process:
+1. Converts URI to temporary file
+2. Uploads to ImgBB API
+3. Returns image URL
+Usage: Called from AddRecipeActivity
+
+External API Integration:
+
+searchOnlineRecipes(String query, OnRecipesLoadedListener listener)
+Purpose: Searches TheMealDB API
+Process:
+1. Makes API call to TheMealDB
+2. Converts API response to local Recipe objects
+3. Applies local filters
+4. Limits results to 10 recipes
+Usage: Called from HomeFragment when no local results
+
+searchOnlineRecipesWithFilter(RecipeFilter filter, OnRecipesLoadedListener listener)
+Purpose: Searches API with specific filters
+Process:
+1. Determines API endpoint based on filter type
+2. Makes appropriate API call
+3. Processes and filters results
+Usage: Called from filter dialogs
+
+getCategories(OnCategoriesLoadedListener listener)
+Purpose: Retrieves available categories from API
+Process: Calls TheMealDB categories endpoint
+Usage: Called from filter dialogs
+
+getAreas(OnAreasLoadedListener listener)
+Purpose: Retrieves available areas/cuisines from API
+Process: Calls TheMealDB areas endpoint
+Usage: Called from filter dialogs
+
+getIngredients(OnIngredientsLoadedListener listener)
+Purpose: Retrieves available ingredients from API
+Process: Calls TheMealDB ingredients endpoint
+Usage: Called from filter dialogs
+
+Utility Methods:
+
+getCurrentUserId()
+Purpose: Gets current authenticated user ID
+Process: Returns Firebase Auth current user UID
+Usage: Used throughout app for user-specific operations
+
+getCurrentUser()
+Purpose: Gets current Firebase user object
+Process: Returns Firebase Auth current user
+Usage: Used for user information
+
+Data Conversion Methods:
+
+convertApiRecipesToLocalRecipes(List<ApiRecipe> apiRecipes)
+Purpose: Converts API recipe objects to local Recipe objects
+Process:
+1. Maps API fields to local model
+2. Extracts ingredients from API response
+3. Sets appropriate flags
+Usage: Called after API responses
+
+extractIngredientsFromTheMealDB(ApiRecipe apiRecipe)
+Purpose: Extracts ingredients from TheMealDB API response
+Process:
+1. Iterates through ingredient fields (1-20)
+2. Combines with corresponding measures
+3. Creates Ingredient objects
+Usage: Called during API recipe conversion
+
+Filtering Methods:
+
+applyLocalFilters(List<Recipe> recipes, RecipeFilter filter)
+Purpose: Applies additional local filtering to API results
+Process: Currently returns all recipes (placeholder for future dietary filters)
+Usage: Called after API recipe conversion
+
+isRecipeSuitableForFilter(Recipe recipe, RecipeFilter filter)
+Purpose: Checks if recipe matches filter criteria
+Process: Currently returns true (placeholder for future implementation)
+Usage: Called during local filtering
+
+Error Handling Methods:
+
+translateRegistrationError(String firebaseError)
+Purpose: Converts Firebase registration errors to user-friendly messages
+Process: Maps Firebase error messages to readable text
+Usage: Called during user registration
+
+translateFirebaseError(String firebaseError)
+Purpose: Converts Firebase login errors to user-friendly messages
+Process: Maps Firebase error messages to readable text
+Usage: Called during user login
+
+translatePasswordResetError(String firebaseError)
+Purpose: Converts Firebase password reset errors to user-friendly messages
+Process: Maps Firebase error messages to readable text
+Usage: Called during password reset
+
+---
+
+API Integration
+
+TheMealDB Integration
+
+RecipeApiService.java
+Location: app/src/main/java/com/example/cookbook/api/RecipeApiService.java
+
+Purpose: Retrofit interface for TheMealDB API calls
+
+Endpoints:
+- searchRecipes(String query): Search recipes by name
+- getRecipeInformation(String id): Get full recipe details
+- getRandomRecipes(): Get random recipes
+- filterByCategory(String category): Filter by category
+- filterByArea(String area): Filter by cuisine/area
+- filterByIngredient(String ingredient): Filter by ingredient
+- getCategories(): Get available categories
+- getAreas(String list): Get available areas
+- getIngredients(String list): Get available ingredients
+
+ApiClient.java
+Location: app/src/main/java/com/example/cookbook/api/ApiClient.java
+
+Purpose: Retrofit client configuration for TheMealDB API
+
+ImgBB Integration
+
+ImgBBUploadManager.java
+Location: app/src/main/java/com/example/cookbook/util/ImgBBUploadManager.java
+
+Purpose: Handles image upload to ImgBB service
+
+Key Methods:
+
+uploadImage(File imageFile, UploadCallback callback)
+Purpose: Uploads image file to ImgBB
+Process:
+1. Creates multipart form data
+2. Adds API key and image file
+3. Makes HTTP POST request
+4. Parses JSON response
+5. Returns image URL or error
+Usage: Called from FirebaseManager.uploadRecipeImage()
+
+---
+
+Method Review
+
+MainActivity.java Methods
+
+onCreate(Bundle savedInstanceState)
+Location: Lines 32-42
+Purpose: Initializes the activity and checks authentication status
+Process:
+1. Gets FirebaseManager instance
+2. Checks if user is logged in
+3. Shows login screen or main app UI accordingly
+Usage: Called when activity is created
+
+setupLoginScreen()
+Location: Lines 44-142
+Purpose: Sets up login/registration UI and event handlers
+Process:
+1. Gets references to UI elements
+2. Sets up login button click listener
+3. Sets up register button click listener
+4. Sets up forgot password click listener
+Usage: Called from onCreate() when user is not authenticated
+
+validateInput(TextInputLayout tilEmail, TextInputLayout tilPassword, String email, String password)
+Location: Lines 144-162
+Purpose: Validates user input before authentication
+Process:
+1. Checks if email is not empty
+2. Checks if password is not empty and at least 6 characters
+3. Sets error messages on input layouts
+4. Returns validation result
+Usage: Called before login/registration attempts
+
+showMainAppUI(Bundle savedInstanceState)
+Location: Lines 164-175
+Purpose: Shows the main application interface
+Process:
+1. Sets main_app layout
+2. Sets up bottom navigation
+3. Loads HomeFragment by default
+Usage: Called after successful authentication
+
+onNavigationItemSelected(MenuItem item)
+Location: Lines 177-192
+Purpose: Handles bottom navigation item selection
+Process:
+1. Determines which fragment to load based on selected item
+2. Creates appropriate fragment instance
+3. Loads fragment into container
+Usage: Called when user taps bottom navigation items
+
+loadFragment(Fragment fragment)
+Location: Lines 194-202
+Purpose: Loads fragment into the main container
+Process:
+1. Checks if fragment is not null
+2. Replaces current fragment in container
+3. Returns success status
+Usage: Called from onNavigationItemSelected()
+
+HomeFragment.java Methods
+
+onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState)
+Location: Lines 48-52
+Purpose: Creates the fragment's view hierarchy
+Process: Inflates fragment_home layout using ViewBinding
+Usage: Called by Android framework during fragment creation
+
+onViewCreated(View view, Bundle savedInstanceState)
+Location: Lines 54-63
+Purpose: Sets up fragment after view creation
+Process:
+1. Gets FirebaseManager instance
+2. Sets up RecyclerView
+3. Sets up SearchView
+4. Sets up click listeners
+5. Loads recipes
+Usage: Called after onCreateView()
+
+setupRecyclerView()
+Location: Lines 65-82
+Purpose: Configures RecyclerView for recipe display
+Process:
+1. Creates RecipeAdapter with click listeners
+2. Sets LinearLayoutManager
+3. Assigns adapter to RecyclerView
+Usage: Called from onViewCreated()
+
+setupSearchView()
+Location: Lines 84-118
+Purpose: Configures search functionality
+Process:
+1. Sets up query text listeners
+2. Handles search submission
+3. Handles real-time search (after 2 characters)
+4. Handles search clearing
+Usage: Called from onViewCreated()
+
+searchRecipes(String query)
+Location: Lines 120-142
+Purpose: Searches for recipes locally and online
+Process:
+1. Shows progress bar
+2. Searches local recipes first
+3. If no local results, searches online
+4. Updates recipe list with results
+Usage: Called from SearchView listeners
+
+searchOnlineRecipes(String query)
+Location: Lines 144-155
+Purpose: Searches external API for recipes
+Process:
+1. Calls FirebaseManager.searchOnlineRecipes()
+2. Updates UI with results
+3. Handles errors
+Usage: Called from searchRecipes() when no local results
+
+updateRecipeList(List<Recipe> recipes)
+Location: Lines 157-190
+Purpose: Updates the displayed recipe list
+Process:
+1. Filters recipes based on current state
+2. Validates recipe data
+3. Updates adapter with filtered recipes
+4. Updates empty state visibility
+Usage: Called after recipe searches and loads
+
+setupClickListeners()
+Location: Lines 192-218
+Purpose: Sets up click handlers for UI elements
+Process:
+1. Sets up FAB for adding recipes
+2. Sets up filter button
+3. Sets up clear filter button
+Usage: Called from onViewCreated()
+
+showFilterDialogWithOptions()
+Location: Lines 220-285
+Purpose: Shows filter dialog with loaded options
+Process:
+1. Shows progress bar
+2. Loads categories, areas, and ingredients from API
+3. Shows filter dialog when all options are loaded
+Usage: Called when filter button is clicked
+
+loadRecipes()
+Location: Lines 294-312
+Purpose: Loads user's recipes from Firebase
+Process:
+1. Calls FirebaseManager.getUserRecipes()
+2. Converts Firestore documents to Recipe objects
+3. Updates recipe list
+4. Handles errors
+Usage: Called from onViewCreated() and onResume()
+
+onFilterApplied(RecipeFilter filter)
+Location: Lines 322-329
+Purpose: Handles filter application from dialog
+Process:
+1. Stores current filter
+2. Shows clear filter button
+3. Performs search with filter
+Usage: Called from RecipeFilterDialog
+
+clearFilter()
+Location: Lines 331-336
+Purpose: Clears current filter
+Process:
+1. Clears current filter
+2. Hides clear filter button
+3. Loads user recipes
+Usage: Called when clear filter button is clicked
+
+searchWithFilterOrQuery()
+Location: Lines 338-476
+Purpose: Performs search with current filter and query
+Process:
+1. Determines search strategy based on filter and query
+2. Calls appropriate search method
+3. Updates UI with results
+Usage: Called from search and filter operations
+
+AddRecipeActivity.java Methods
+
+onCreate(Bundle savedInstanceState)
+Location: Lines 42-65
+Purpose: Initializes recipe creation/editing activity
+Process:
+1. Sets up ViewBinding
+2. Configures toolbar
+3. Sets up UI components
+4. Handles edit mode if applicable
+Usage: Called when activity is created
+
+setupSpinner()
+Location: Lines 67-72
+Purpose: Configures category spinner
+Process:
+1. Creates ArrayAdapter with recipe categories
+2. Sets adapter on spinner
+Usage: Called from onCreate()
+
+setupRecyclerView()
+Location: Lines 74-78
+Purpose: Configures ingredient list
+Process:
+1. Creates IngredientAdapter
+2. Sets LinearLayoutManager
+3. Assigns adapter to RecyclerView
+Usage: Called from onCreate()
+
+setupClickListeners()
+Location: Lines 80-102
+Purpose: Sets up button click handlers
+Process:
+1. Sets up add ingredient button
+2. Sets up upload image button
+3. Sets up save button
+Usage: Called from onCreate()
+
+addIngredient()
+Location: Lines 104-125
+Purpose: Adds or updates ingredient in list
+Process:
+1. Validates ingredient input
+2. Creates or updates Ingredient object
+3. Updates adapter
+4. Clears input fields
+Usage: Called when add ingredient button is clicked
+
+selectImage()
+Location: Lines 135-140
+Purpose: Opens image picker
+Process:
+1. Creates intent for image selection
+2. Starts activity for result
+Usage: Called when upload image button is clicked
+
+prefillFieldsForEdit(Recipe recipe)
+Location: Lines 150-175
+Purpose: Fills form fields with existing recipe data
+Process:
+1. Sets title, category, and instructions
+2. Loads ingredients into adapter
+3. Loads recipe image if available
+Usage: Called in edit mode from onCreate()
+
+saveRecipe()
+Location: Lines 177-250
+Purpose: Saves recipe to Firebase
+Process:
+1. Validates form data
+2. Creates or updates Recipe object
+3. Uploads image if selected
+4. Saves to Firestore
+Usage: Called when save button is clicked
+
+saveRecipeToFirestore(Recipe recipe)
+Location: Lines 268-292
+Purpose: Saves recipe to Firebase Firestore
+Process:
+1. Calls FirebaseManager.addRecipe()
+2. Handles success and failure
+3. Returns to previous screen on success
+Usage: Called from saveRecipe()
+
+RecipeAdapter.java Methods
+
+onBindViewHolder(RecipeViewHolder holder, int position)
+Location: Lines 60-100
+Purpose: Binds recipe data to view holder
+Process:
+1. Gets recipe at position
+2. Sets title, category, and instructions
+3. Loads image with Glide
+4. Sets up click listeners
+5. Updates favorite button state
+Usage: Called by RecyclerView for each item
+
+onRecipeClick(Recipe recipe)
+Location: Lines 102-115
+Purpose: Handles recipe item clicks
+Process:
+1. Creates intent for RecipeDetailActivity
+2. Passes recipe data
+3. Starts activity
+Usage: Called when recipe item is clicked
+
+onFavoriteClick(Recipe recipe, boolean isFavorite)
+Location: Lines 117-135
+Purpose: Handles favorite button clicks
+Process:
+1. Calls FirebaseManager.toggleFavoriteRecipe()
+2. Updates UI state
+3. Notifies listener of change
+Usage: Called when favorite button is clicked
+
+ImgBBUploadManager.java Methods
+
+uploadImage(File imageFile, UploadCallback callback)
+Location: Lines 25-67
+Purpose: Uploads image to ImgBB service
+Process:
+1. Creates new thread for upload
+2. Builds multipart form data
+3. Makes HTTP POST request
+4. Parses JSON response
+5. Returns image URL or error via callback
+Usage: Called from FirebaseManager.uploadRecipeImage()
+
+---
+
+User Workflows
+
+1. User Registration Flow
+1. User opens app for first time
+2. MainActivity checks authentication status
+3. Login screen is displayed
+4. User taps "Register" button
+5. Input validation is performed
+6. FirebaseManager.registerUser() is called
+7. User account is created in Firebase Auth
+8. User document is created in Firestore
+9. Main app UI is displayed
+
+2. User Login Flow
+1. User enters email and password
+2. Input validation is performed
+3. FirebaseManager.loginUser() is called
+4. Firebase Auth validates credentials
+5. Main app UI is displayed
+
+3. Recipe Creation Flow
+1. User taps FAB on home screen
+2. AddRecipeActivity is launched
+3. User fills in recipe details
+4. User adds ingredients
+5. User optionally uploads image
+6. User taps save button
+7. Form validation is performed
+8. Image is uploaded to ImgBB (if selected)
+9. Recipe is saved to Firestore
+10. User returns to home screen
+
+4. Recipe Search Flow
+1. User enters search query
+2. Local recipes are searched first
+3. If no local results, online search is performed
+4. API results are converted to local Recipe objects
+5. Results are displayed in RecyclerView
+
+5. Recipe Filtering Flow
+1. User taps filter button
+2. Filter options are loaded from API
+3. Filter dialog is displayed
+4. User selects filter criteria
+5. Filtered search is performed
+6. Results are displayed
+
+6. Recipe Favoriting Flow
+1. User taps heart icon on recipe
+2. FirebaseManager.toggleFavoriteRecipe() is called
+3. Recipe favorite status is updated in Firestore
+4. UI is updated to reflect change
+5. Recipe appears in favorites tab
+
+---
+
+Configuration & Setup
+
+Firebase Setup
+1. Create Firebase project at console.firebase.google.com
+2. Add Android app to project
+3. Download google-services.json
+4. Place file in app/ directory
+5. Enable Authentication (Email/Password)
+6. Enable Firestore Database
+7. Configure security rules
+
+ImgBB API Setup
+1. Get API key from imgbb.com/api
+2. Add key to local.properties:
+   IMGBB_API_KEY=your_api_key_here
+
+Build Configuration
+1. Ensure Android Studio is up to date
+2. Sync project with Gradle files
+3. Build project to check for errors
+4. Run on device or emulator
+
+Dependencies
+Key dependencies in build.gradle:
+- Firebase BOM for backend services
+- Retrofit for API calls
+- Glide for image loading
+- Material Design components
+- ViewBinding for type-safe view access
+
+---
+
+Testing & Deployment
+
+Testing Strategy
+1. Unit Tests: Test individual methods and classes
+2. Integration Tests: Test Firebase and API integration
+3. UI Tests: Test user interface interactions
+4. Manual Testing: Test complete user workflows
+
+Common Test Scenarios
+1. User registration and login
+2. Recipe creation and editing
+3. Search and filtering functionality
+4. Image upload and display
+5. Favorite management
+6. Offline functionality
+7. Error handling
+
+Deployment Checklist
+1. Update version code and name
+2. Configure ProGuard rules
+3. Test release build
+4. Generate signed APK
+5. Test on multiple devices
+6. Prepare store listing materials
+
+---
+
+Troubleshooting Guide
+
+Common Issues
+1. Firebase Connection: Check google-services.json and internet connection
+2. Image Upload: Verify ImgBB API key configuration
+3. API Calls: Check network connectivity and API endpoints
+4. Authentication: Verify Firebase Auth configuration
+5. Data Persistence: Check Firestore rules and permissions
+
+Debug Tips
+1. Use Android Studio's Logcat for debugging
+2. Check Firebase Console for authentication and database issues
+3. Verify API responses using network inspector
+4. Test on different Android versions
+5. Monitor memory usage and performance
+
+---
+
+Future Enhancements
+
+Potential Improvements
+1. Offline Support: Implement local database caching
+2. Social Features: Add recipe sharing and comments
+3. Advanced Filtering: Add dietary restrictions and cooking time
+4. Recipe Scaling: Allow ingredient quantity adjustments
+5. Nutrition Information: Integrate nutrition API
+6. Voice Commands: Add voice search functionality
+7. Dark Mode: Implement theme switching
+8. Widgets: Add home screen widgets
+
+Technical Improvements
+1. Architecture: Migrate to MVVM with LiveData
+2. Dependency Injection: Implement Hilt or Dagger
+3. Coroutines: Replace callbacks with coroutines
+4. Jetpack Compose: Modernize UI with Compose
+5. Testing: Increase test coverage
+6. Performance: Optimize image loading and caching
+
+---
+
+This comprehensive study guide covers all aspects of the CookBook Android application, providing detailed information about its architecture, components, methods, and usage. The guide serves as a complete reference for understanding, presenting, and maintaining the application. 
