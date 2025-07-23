@@ -670,28 +670,11 @@ public class FirebaseManager {
         List<Recipe> filteredRecipes = new ArrayList<>();
         
         for (Recipe recipe : recipes) {
-            if (isRecipeSuitableForFilter(recipe, filter)) {
-                filteredRecipes.add(recipe);
-            }
+
+            filteredRecipes.add(recipe);
         }
         
         return filteredRecipes;
-    }
-
-    /**
-     * Checks if a recipe is suitable for a given filter.
-     * 
-     * @param recipe The recipe to check
-     * @param filter The filter to apply
-     * @return true if the recipe matches the filter
-     */
-    private boolean isRecipeSuitableForFilter(Recipe recipe, RecipeFilter filter) {
-        // Add local filtering logic here
-        // For example, check ingredients for vegan/vegetarian compliance
-        
-        // For now, return true (no additional filtering)
-        // You can enhance this with ingredient analysis
-        return true;
     }
 
     /**
