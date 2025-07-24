@@ -1,4 +1,4 @@
-package com.example.cookbook;
+package com.example.cookbook.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -15,15 +15,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.example.cookbook.util.FirebaseManager;
-import com.example.cookbook.ui.favorites.FavoritesFragment;
-import com.example.cookbook.ui.home.HomeFragment;
-import com.example.cookbook.ui.profile.ProfileFragment;
+import com.example.cookbook.ui.fragments.FavoritesFragment;
+import com.example.cookbook.ui.fragments.HomeFragment;
+import com.example.cookbook.ui.fragments.ProfileFragment;
 import com.example.cookbook.databinding.ActivityMainBinding;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.example.cookbook.R;
 
 public class MainActivity extends AppCompatActivity implements NavigationBarView.OnItemSelectedListener {
     private ActivityMainBinding binding;

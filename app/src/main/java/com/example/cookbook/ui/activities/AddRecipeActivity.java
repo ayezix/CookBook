@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.recipe;
+package com.example.cookbook.ui.activities;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -22,7 +22,7 @@ import com.example.cookbook.model.Ingredient;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.util.FirebaseManager;
 import com.example.cookbook.util.ImgBBUploadManager;
-import com.example.cookbook.ui.recipe.IngredientAdapter;
+import com.example.cookbook.ui.adapters.IngredientAdapter;
 
 import java.io.File;
 import java.io.FileOutputStream;

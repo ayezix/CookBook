@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.favorites;
+package com.example.cookbook.ui.fragments;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -13,7 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.cookbook.databinding.FragmentFavoritesBinding;
 import com.example.cookbook.model.Recipe;
-import com.example.cookbook.ui.home.RecipeAdapter;
+import com.example.cookbook.ui.adapters.RecipeAdapter;
 import com.example.cookbook.util.FirebaseManager;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 

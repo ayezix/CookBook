@@ -27,7 +27,7 @@
         <!-- <activity android:name=".ui.auth.LoginActivity" android:exported="true"> ... </activity> -->
         
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.activities.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -36,11 +36,11 @@
         </activity>
             
         <activity
-            android:name=".ui.recipe.AddRecipeActivity"
+            android:name=".ui.activities.AddRecipeActivity"
             android:exported="false" />
             
         <activity
-            android:name=".ui.recipe.RecipeDetailActivity"
+            android:name=".ui.activities.RecipeDetailActivity"
             android:exported="false" />
             
     </application>

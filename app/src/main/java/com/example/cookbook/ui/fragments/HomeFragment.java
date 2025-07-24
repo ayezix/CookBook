@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.home;
+package com.example.cookbook.ui.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -18,7 +18,7 @@ import com.example.cookbook.databinding.FragmentHomeBinding;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.model.RecipeFilter;
 import com.example.cookbook.ui.dialog.RecipeFilterDialog;
-import com.example.cookbook.ui.recipe.AddRecipeActivity;
+import com.example.cookbook.ui.activities.AddRecipeActivity;
 import com.example.cookbook.util.FirebaseManager;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -28,6 +28,7 @@ import java.util.List;
 import com.example.cookbook.api.model.CategoryResponse;
 import com.example.cookbook.api.model.AreaResponse;
 import com.example.cookbook.api.model.IngredientResponse;
+import com.example.cookbook.ui.adapters.RecipeAdapter;
 
 public class HomeFragment extends Fragment implements RecipeFilterDialog.OnFilterAppliedListener {
     private FragmentHomeBinding binding;

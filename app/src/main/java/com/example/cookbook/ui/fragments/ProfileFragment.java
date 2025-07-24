@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.profile;
+package com.example.cookbook.ui.fragments;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -63,7 +63,7 @@ public class ProfileFragment extends Fragment {
 
     private void handleLogout() {
         firebaseManager.logoutUser();
-        startActivity(new Intent(requireContext(), com.example.cookbook.MainActivity.class));
+        startActivity(new Intent(requireContext(), com.example.cookbook.ui.activities.MainActivity.class));
         requireActivity().finish();
     }
 

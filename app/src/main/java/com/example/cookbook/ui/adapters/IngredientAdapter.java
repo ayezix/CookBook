@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.recipe;
+package com.example.cookbook.ui.adapters;
 
 import android.view.LayoutInflater;
 import android.view.View;

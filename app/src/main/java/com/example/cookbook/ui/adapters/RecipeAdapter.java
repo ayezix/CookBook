@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.home;
+package com.example.cookbook.ui.adapters;
 
 import android.content.Intent;
 import android.net.Uri;
@@ -15,8 +15,8 @@ import com.example.cookbook.R;
 import com.example.cookbook.databinding.ItemRecipeBinding;
 import com.example.cookbook.model.Recipe;
 import com.example.cookbook.util.FirebaseManager;
-import com.example.cookbook.ui.recipe.RecipeDetailActivity;
-import com.example.cookbook.ui.recipe.AddRecipeActivity;
+import com.example.cookbook.ui.activities.AddRecipeActivity;
+import com.example.cookbook.ui.activities.RecipeDetailActivity;
 
 import java.util.List;
 

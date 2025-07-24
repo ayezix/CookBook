@@ -1,4 +1,4 @@
-package com.example.cookbook.ui.recipe;
+package com.example.cookbook.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
