@@ -156,6 +156,9 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
                                         "Recipe added to favorites" : "Recipe removed from favorites";
                                     Toast.makeText(binding.getRoot().getContext(), 
                                         message, Toast.LENGTH_SHORT).show();
+                                    if (!newFavoriteState && recipe.isImportedFromApi()) {
+                                        firebaseManager.deleteRecipe(recipe.getId());
+                                    }
                                     if (favoriteChangedListener != null) favoriteChangedListener.onFavoriteChanged();
                                 }
                             })
